@@ -303,4 +303,5 @@ def view_payslips():
 # --- Main Execution ---
 if __name__ == '__main__':
     # Use debug=True only for development, False for production
+    host = os.environ.get('FLASK_RUN_HOST', '0.0.0.0') # Default to all interfaces
     app.run(debug=True, port=5001) # Changed port to avoid conflicts if 5000 is busy
