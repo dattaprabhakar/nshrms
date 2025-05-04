@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Leave Requests{% endblock %}
+
+{% block content %}
+    <h2>Your Leave Requests</h2>
+    <p><a href="{{ url_for('apply_leave') }}">Apply for New Leave</a></p>
+    {% if leave_requests %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Applied Date</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for leave in leave_requests %}
+                    <tr>
+                         <td>{{ leave.applied_date.strftime('%Y-%m-%d %H:%M') if leave.applied_date else 'N/A' }}</td>
+                        <td>{{ leave.start_date }}</td>
+                        <td>{{ leave.end_date }}</td>
+                        <td>{{ leave.reason }}</td>
+                        <td>{{ leave.status }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No leave requests found.</p>
+    {% endif %}
+{% endblock %}

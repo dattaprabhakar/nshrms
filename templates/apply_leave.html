@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Apply for Leave{% endblock %}
+
+{% block content %}
+    <h2>Apply for Leave</h2>
+    <form method="POST" action="{{ url_for('apply_leave') }}">
+         <div>
+            <label for="start_date">Start Date:</label>
+            <input type="date" id="start_date" name="start_date" required>
+        </div>
+         <div>
+            <label for="end_date">End Date:</label>
+            <input type="date" id="end_date" name="end_date" required>
+        </div>
+        <div>
+            <label for="reason">Reason:</label>
+            <textarea id="reason" name="reason" rows="4" required></textarea>
+        </div>
+        <button type="submit">Submit Request</button>
+    </form>
+{% endblock %}

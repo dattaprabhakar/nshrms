@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Payslips{% endblock %}
+
+{% block content %}
+    <h2>Your Payslips</h2>
+    {% if payslips %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Generated Date</th>
+                    <th>Net Pay (Example)</th>
+                    <th>Filename (Example)</th>
+                    <!-- Add more columns as needed -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for slip in payslips %}
+                    <tr>
+                        <td>{{ slip.year }}-{{ "%02d"|format(slip.month) }}</td>
+                        <td>{{ slip.generated_date.strftime('%Y-%m-%d') if slip.generated_date else 'N/A' }}</td>
+                        <td>{{ slip.net_pay if slip.net_pay else 'N/A' }}</td>
+                        <td>{{ slip.file_name if slip.file_name else 'N/A' }}</td>
+                        <!-- Add a link to download if file_name points to a downloadable path -->
+                        <!-- Example: <td><a href="/download/payslip/{{ slip.file_name }}">Download</a></td> -->
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No payslips found.</p>
+        <p><small>(Note: Payslips are usually added by HR/Admin. This example might show dummy data if none exists.)</small></p>
+    {% endif %}
+{% endblock %}

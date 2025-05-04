@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HRMS Portal{% endblock %}</title>
+    <!-- Add CSS links here -->
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        nav { background-color: #f0f0f0; padding: 10px; margin-bottom: 20px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #333; }
+        .flash-messages { list-style: none; padding: 0; }
+        .flash-messages li { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
+        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .flash-info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        form label { display: block; margin-bottom: 5px; }
+        form input[type="text"], form input[type="password"], form input[type="date"], form textarea {
+            width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; box-sizing: border-box;
+        }
+        form button { padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
+        form button:hover { background-color: #0056b3; }
+        .user-info { float: right; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('view_attendance') }}">Attendance</a>
+        <a href="{{ url_for('view_leaves') }}">Leaves</a>
+        <a href="{{ url_for('view_payslips') }}">Payslips</a>
+        {% if session.user_id %}
+            <span class="user-info">
+                Welcome, {{ session.username }}!
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </span>
+        {% else %}
+             <a href="{{ url_for('login') }}" style="float: right;">Login</a>
+        {% endif %}
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-messages">
+            {% for category, message in messages %}
+                <li class="flash-{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Add JS scripts here if needed -->
+</body>
+</html>

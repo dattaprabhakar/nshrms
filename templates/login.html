@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+    <h2>Login</h2>
+    <form method="POST" action="{{ url_for('login') }}">
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+    </form>
+    <p><small>Hint: Try username 'testuser' and password 'password123' after running /setup_user once.</small></p>
+     <p><small>If the test user doesn't exist, visit <a href="{{ url_for('setup_user') }}">/setup_user</a> first (requires server restart after user creation sometimes).</small></p>
+{% endblock %}
+Use code with caution.
+Html
+dashboard.html:
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+    <h2>Welcome to your Dashboard, {{ user.full_name }}!</h2>
+    <p>Employee ID: {{ user.employee_id }}</p>
+    <hr>
+
+    <h3>Today's Attendance</h3>
+    <p>Status:
+        {% if attendance_status.clocked_in %}
+            Clocked In at {{ attendance_status.clock_in_time.strftime('%Y-%m-%d %H:%M:%S') if attendance_status.clock_in_time else 'N/A' }}
+            {% if attendance_status.clocked_out %}
+                | Clocked Out at {{ attendance_status.clock_out_time.strftime('%Y-%m-%d %H:%M:%S') if attendance_status.clock_out_time else 'N/A' }} (Completed)
+            {% else %}
+                (In Progress)
+            {% endif %}
+        {% else %}
+            Not Clocked In Yet
+        {% endif %}
+    </p>
+
+    <div>
+        {% if not attendance_status.clocked_in %}
+            <form action="{{ url_for('clock_in') }}" method="POST" style="display: inline;">
+                <button type="submit">Clock In</button>
+            </form>
+        {% elif not attendance_status.clocked_out %}
+            <form action="{{ url_for('clock_out') }}" method="POST" style="display: inline;">
+                <button type="submit">Clock Out</button>
+            </form>
+        {% endif %}
+    </div>
+    <hr>
+
+    <h3>Quick Links</h3>
+    <ul>
+        <li><a href="{{ url_for('view_attendance') }}">View Attendance History</a></li>
+        <li><a href="{{ url_for('view_leaves') }}">View Leave Requests</a></li>
+        <li><a href="{{ url_for('apply_leave') }}">Apply for Leave</a></li>
+        <li><a href="{{ url_for('view_payslips') }}">View Payslips</a></li>
+    </ul>
+{% endblock %}

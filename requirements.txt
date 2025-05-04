@@ -1,0 +1,6 @@
+# hrms_portal/requirements.txt
+Flask
+pymongo
+python-dotenv
+Werkzeug
+dnspython
