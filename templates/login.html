@@ -43,7 +43,7 @@
                     </form>
                      <hr class="my-4">
                      {# Only show setup link in debug mode #}
-                     {% if app.debug %}
+                     {% if debug_status %} {# <-- Use debug_status here #}
                         <p class="text-muted text-center mb-0"><small>Hint: adminuser / password123. Need user? <a href="{{ url_for('setup_user') }}">Setup Admin User</a>.</small></p>
                      {% endif %}
                 </div>

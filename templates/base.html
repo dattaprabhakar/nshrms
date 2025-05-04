@@ -17,11 +17,11 @@
         }
         body { background-color: var(--main-bg); display: flex; }
         #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 0; /* Remove top padding */ overflow-y: auto; transition: width 0.3s ease; z-index: 1030; display: flex; flex-direction: column; }
-        #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; border-left: 3px solid transparent; transition: background-color 0.2s ease, border-left-color 0.2s ease; }
+        #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; border-left: 3px solid transparent; /* For active indicator */ transition: background-color 0.2s ease, border-left-color 0.2s ease; }
         #sidebar .nav-link i { margin-right: 0.8rem; font-size: 1.2rem; width: 25px; text-align: center; }
         #sidebar .nav-link:hover { background-color: var(--sidebar-link-hover-bg); color: #ffffff; border-left-color: var(--sidebar-link-hover-bg); }
         /* Active link styling */
-        #sidebar .nav-link.active { background-color: var(--sidebar-link-hover-bg); color: var(--sidebar-link-active-color); font-weight: 500; border-left-color: var(--sidebar-link-active-bg); }
+        #sidebar .nav-link.active { background-color: var(--sidebar-link-hover-bg); color: var(--sidebar-link-active-color); font-weight: 500; border-left-color: var(--sidebar-link-active-bg); /* Active indicator */ }
         /* Active state for dropdown toggle when its child is active */
         #sidebar .nav-item.dropdown .nav-link.active-parent { background-color: var(--sidebar-link-hover-bg); color: var(--sidebar-link-active-color); border-left-color: var(--sidebar-link-hover-bg); }
 
@@ -150,9 +150,11 @@
              <div>
                  <nav aria-label="breadcrumb">
                     <ol class="breadcrumb bg-transparent p-0 m-0">
+                         {# Determine Base Title based on Admin/User #}
                          {% set base_url = url_for('admin_dashboard' if is_admin else 'dashboard') %}
                          {% set base_title = "Admin" if is_admin else "Home" %}
                         <li class="breadcrumb-item"><a href="{{ base_url }}">{{ base_title }}</a></li>
+
                         {# Determine Page Title #}
                         {% set page_title = request.endpoint | replace('admin_', '') | replace('_', ' ') | title %}
                         {% if request.endpoint == 'view_attendance' %} {% set page_title = 'Attendance' %}
@@ -168,10 +170,10 @@
                     </ol>
                 </nav>
              </div>
-             <div class="user-info">
+             <div class="user-info d-flex align-items-center"> {# Use flex for alignment #}
                  {% if session.user_id %}
-                    <span class="me-3"><i class="bi bi-person-circle me-1"></i> {{ session.username }} {% if is_admin %}<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle rounded-pill ms-1 small">Admin</span>{% endif %}</span>
-                    <a href="{{ url_for('logout') }}" title="Logout" class="text-danger"> <i class="bi bi-box-arrow-right"></i> Logout </a>
+                    <span class="me-3 text-nowrap"><i class="bi bi-person-circle me-1"></i> {{ session.username }} {% if is_admin %}<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle rounded-pill ms-1 small">Admin</span>{% endif %}</span>
+                    <a href="{{ url_for('logout') }}" title="Logout" class="text-danger text-nowrap"> <i class="bi bi-box-arrow-right"></i> Logout </a>
                  {% else %}
                      <a href="{{ url_for('login') }}"> <i class="bi bi-box-arrow-in-right"></i> Login </a>
                  {% endif %}
@@ -181,7 +183,7 @@
         <!-- Content Wrapper with Padding -->
         <div class="content-wrapper">
             <!-- Flash Messages Container -->
-             <div id="flash-message-container">
+             <div id="flash-message-container" style="position: relative; z-index: 1050;"> {# Ensure flash messages appear above some content #}
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
