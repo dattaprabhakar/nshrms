@@ -33,6 +33,7 @@ try:
     leaves_collection = db.leaves; payslips_collection = db.payslips
     # Ensure indexes
     users_collection.create_index("username", unique=True, background=True)
+    users_collection.create_index("employee_id", unique=True, background=True, sparse=True) # Added unique employee ID index
     attendance_collection.create_index([("user_id", 1), ("clock_in", -1)], background=True)
     leaves_collection.create_index([("user_id", 1), ("applied_date", -1)], background=True)
     leaves_collection.create_index("status", background=True)
@@ -87,7 +88,6 @@ def inject_global_vars():
 
 @app.route('/setup_user') # Development only
 def setup_user():
-    """ Creates/updates a default admin user AND a standard user. """
     admin_username = "adminuser"; admin_password = "password123"
     user_username = "testuser"; user_password = "password123"
     messages = []
@@ -99,17 +99,13 @@ def setup_user():
         else: msg = f"Admin user '{admin_username}' exists.";
         if existing_admin and not existing_admin.get('is_admin'): users_collection.update_one({'_id': existing_admin['_id']}, {'$set': {'is_admin': True}}); msg += " (Updated to admin)"
         messages.append(msg)
-
         # Standard User
         existing_user = users_collection.find_one({'username': user_username})
         if not existing_user:
              hashed_password = generate_password_hash(user_password); user_data={'username':user_username,'password':hashed_password,'full_name':'Test User', 'employee_id':'EMP001','is_admin':False,'created_at':datetime.utcnow(), 'job_title': 'Software Engineer', 'department': 'Technology', 'location': 'Remote', 'email': 'test@example.com', 'mobile': '123-456-7890'}; users_collection.insert_one(user_data); msg = f"Standard user '{user_username}' created."
         else: msg = f"Standard user '{user_username}' exists."
         messages.append(msg)
-
-        final_message = " | ".join(messages)
-        print(f"SETUP: {final_message}")
-        return final_message
+        final_message = " | ".join(messages); print(f"SETUP: {final_message}"); return final_message
     except Exception as e: print(f"Err setup_user: {e}"); return f"Error: {e}", 500
 
 
@@ -157,9 +153,7 @@ def clock_in():
     else:
         try: attendance_collection.insert_one({'user_id':user_id,'username':user['username'],'clock_in':datetime.now(),'clock_out':None,'date':date.today().strftime('%Y-%m-%d')}); flash("Clocked in!", "success")
         except Exception as e: print(f"Err clock-in {user_id}: {e}"); flash("Clock-in error.", "danger")
-    # Redirect to referring page or dashboard
     return redirect(request.referrer or url_for('dashboard'))
-
 
 @app.route('/clock_out', methods=['POST'])
 @login_required
@@ -174,7 +168,6 @@ def clock_out():
         try: result=attendance_collection.update_one({'_id':attendance_status["record_id"],'clock_out':None},{'$set':{'clock_out':datetime.now()}}); flash("Clocked out!" if result.modified_count>0 else "Already clocked out?", "success" if result.modified_count>0 else "warning")
         except Exception as e: print(f"Err clock-out {user_id} rec {attendance_status['record_id']}: {e}"); flash("Clock-out error.", "danger")
     else: flash("Cannot find clock-in record.", "danger")
-    # Redirect to referring page or dashboard
     return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/attendance')
@@ -186,9 +179,9 @@ def view_attendance():
     user_attendance = []; attendance_status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
     try:
         user_attendance = list(attendance_collection.find({'user_id':user['_id']}).sort('clock_in',-1))
-        attendance_status = get_today_attendance_status(user['_id']) # Fetch for Actions widget
+        attendance_status = get_today_attendance_status(user['_id'])
     except Exception as e: print(f"Err fetch user att data {user['_id']}: {e}"); flash("Error fetching attendance data.", "danger")
-    return render_template('attendance.html', user=user, attendance_records=user_attendance, attendance_status=attendance_status) # Pass status
+    return render_template('attendance.html', user=user, attendance_records=user_attendance, attendance_status=attendance_status)
 
 @app.route('/leaves')
 @login_required
@@ -249,46 +242,21 @@ def my_team():
         not_in_yet_list = [team_user['username'] for team_user in all_team_users if team_user['_id'] not in clocked_in_ids and team_user['_id'] not in off_today_ids]
         team_stats["not_in_yet_list"] = not_in_yet_list
         calendar_data["weeks"] = calendar.monthcalendar(calendar_data["year"], calendar_data["month"])
-        # Placeholder stats
         team_stats['on_time_count'] = len(clocked_in_ids)
     except Exception as e: print(f"Err My Team {user['_id']}: {e}"); flash("Could not load team data.", "warning")
     return render_template('my_team.html', user=user, team_stats=team_stats, calendar_data=calendar_data)
 
-# ==================================
-# === NEW Employee Directory Route ===
-# ==================================
 @app.route('/organization/employees')
 @login_required
 def view_employee_directory():
-    """ Displays the Employee Directory page for standard users. """
-    if session.get('is_admin'):
-        # Admins use their own user management page
-        return redirect(url_for('admin_manage_users'))
-
-    user = get_current_user()
+    if session.get('is_admin'): return redirect(url_for('admin_manage_users'))
+    user = get_current_user();
     if not user: return redirect(url_for('login'))
-
     employees = []
     try:
-        # Fetch all non-admin users, sorted by name
-        # Exclude password, include fields needed for display
-        employees = list(users_collection.find(
-            {'is_admin': {'$ne': True}}, # Filter out admins
-            {'password': 0, '_id': 1, 'full_name': 1, 'username': 1, 'job_title': 1, 'department': 1, 'location': 1, 'email': 1, 'mobile': 1}
-        ).sort('full_name', 1))
-
-    except Exception as e:
-        print(f"Error fetching employee directory: {e}")
-        flash("Could not load employee directory.", "danger")
-
-    # Pass the current user (for base template) and the list of employees
-    return render_template('org/employee_directory.html',
-                           user=user,
-                           employees=employees)
-# ==================================
-# === END Employee Directory Route ===
-# ==================================
-
+        employees = list(users_collection.find({'is_admin': {'$ne': True}}, {'password': 0}).sort('full_name', 1))
+    except Exception as e: print(f"Error fetching employee directory: {e}"); flash("Could not load directory.", "danger")
+    return render_template('org/employee_directory.html', user=user, employees=employees)
 
 # =========================
 # === ADMIN PORTAL ROUTES ===
@@ -316,6 +284,55 @@ def admin_manage_users():
     try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1))
     except Exception as e: print(f"Err admin fetch users: {e}"); flash("Could not load users.", "danger"); all_users=[]
     return render_template('admin/users.html', user=user, users=all_users)
+
+# --- NEW: Add User Route (Admin) ---
+@app.route('/admin/users/add', methods=['GET', 'POST'])
+@admin_required
+def admin_add_user():
+    """ Displays form to add a new user and handles submission. """
+    user = get_current_user() # Needed for base template
+    if not user: return redirect(url_for('login'))
+
+    form_data = request.form if request.method == 'POST' else {} # For pre-filling form on error
+
+    if request.method == 'POST':
+        # Extract form data
+        username=request.form.get('username','').strip(); password=request.form.get('password','')
+        full_name=request.form.get('full_name','').strip(); employee_id=request.form.get('employee_id','').strip()
+        email=request.form.get('email','').strip() or None; mobile=request.form.get('mobile','').strip() or None
+        job_title=request.form.get('job_title','').strip() or None; department=request.form.get('department','').strip() or None
+        location=request.form.get('location','').strip() or None; is_admin=request.form.get('is_admin') == 'on'
+
+        # --- Validation ---
+        required_fields={'Username':username,'Password':password,'Full Name':full_name,'Employee ID':employee_id}
+        errors = {k:f"{k} required." for k,v in required_fields.items() if not v}
+        if not errors:
+            # Check uniqueness after ensuring required fields are present
+            check_exist = users_collection.find_one({'$or': [{'username': username}, {'employee_id': employee_id}]})
+            if check_exist:
+                field = 'Username' if check_exist['username'] == username else 'Employee ID'
+                errors['unique'] = f"{field} '{check_exist[field.lower().replace(' ','_')]}' already exists."
+        # Add more validation (email format, password complexity) here
+
+        if errors:
+            for error_msg in errors.values(): flash(error_msg, 'danger')
+            return render_template('admin/add_user.html', user=user, form_data=form_data), 400
+
+        # --- Process Valid Data ---
+        try:
+            hashed_password = generate_password_hash(password)
+            new_user_data = {'username':username,'password':hashed_password,'full_name':full_name,'employee_id':employee_id,
+                             'email':email,'mobile':mobile,'job_title':job_title,'department':department,'location':location,
+                             'is_admin':is_admin,'created_at':datetime.utcnow()}
+            result = users_collection.insert_one(new_user_data)
+            if result.inserted_id:
+                flash(f"Employee '{full_name}' added!", 'success'); return redirect(url_for('admin_manage_users'))
+            else: flash("DB issue adding employee.", 'danger')
+        except Exception as e: print(f"Err adding user '{username}': {e}"); flash(f"Error: {e}", 'danger')
+        return render_template('admin/add_user.html', user=user, form_data=form_data), 500 # Re-render on error
+
+    # --- GET Request ---
+    return render_template('admin/add_user.html', user=user, form_data={})
 
 @app.route('/admin/leaves')
 @admin_required

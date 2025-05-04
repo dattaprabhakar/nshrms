@@ -1,0 +1,95 @@
+{# templates/admin/add_user.html #}
+{% extends "base.html" %}
+{% block title %}Add New Employee{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Onboard New Employee</h4>
+            </div>
+            <div class="card-body">
+                 {# Display validation errors if form was re-rendered #}
+                 {% with messages = get_flashed_messages(with_categories=true, category_filter=["warning", "danger"]) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('admin_add_user') }}">
+                    <div class="row g-3">
+                        {# --- Login Credentials --- #}
+                        <h6 class="mt-4 text-primary border-bottom pb-1">Login Credentials</h6>
+                         <div class="col-md-6">
+                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="username" name="username" value="{{ form_data.get('username', '') }}" required>
+                            <div class="form-text">Unique identifier for login.</div>
+                        </div>
+                         <div class="col-md-6">
+                            <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control form-control-sm" id="password" name="password" required>
+                             <div class="form-text">Set an initial password. User should change it later.</div>
+                        </div>
+
+                         {# --- Basic Information --- #}
+                         <h6 class="mt-4 text-primary border-bottom pb-1">Basic Information</h6>
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="full_name" name="full_name" value="{{ form_data.get('full_name', '') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="employee_id" class="form-label">Employee ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="employee_id" name="employee_id" value="{{ form_data.get('employee_id', '') }}" required>
+                             <div class="form-text">Unique employee identifier.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control form-control-sm" id="email" name="email" value="{{ form_data.get('email', '') }}">
+                        </div>
+                         <div class="col-md-6">
+                            <label for="mobile" class="form-label">Mobile Number</label>
+                            <input type="tel" class="form-control form-control-sm" id="mobile" name="mobile" value="{{ form_data.get('mobile', '') }}">
+                        </div>
+
+                        {# --- Job Information --- #}
+                        <h6 class="mt-4 text-primary border-bottom pb-1">Job Information</h6>
+                         <div class="col-md-6">
+                            <label for="job_title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control form-control-sm" id="job_title" name="job_title" value="{{ form_data.get('job_title', '') }}">
+                        </div>
+                         <div class="col-md-6">
+                            <label for="department" class="form-label">Department</label>
+                            {# Use a select dropdown if you have predefined departments later #}
+                            <input type="text" class="form-control form-control-sm" id="department" name="department" value="{{ form_data.get('department', '') }}">
+                        </div>
+                         <div class="col-md-6">
+                            <label for="location" class="form-label">Location</label>
+                             {# Use a select dropdown if you have predefined locations later #}
+                            <input type="text" class="form-control form-control-sm" id="location" name="location" value="{{ form_data.get('location', '') }}">
+                        </div>
+
+                         {# --- Access Control --- #}
+                         <h6 class="mt-4 text-primary border-bottom pb-1">Access Control</h6>
+                         <div class="col-12">
+                            <div class="form-check form-switch">
+                              <input class="form-check-input" type="checkbox" role="switch" id="is_admin" name="is_admin" {{ 'checked' if form_data.get('is_admin') == 'on' else '' }}>
+                              <label class="form-check-label" for="is_admin">Grant Admin Privileges?</label>
+                               <div class="form-text">Check this box to make the user an administrator.</div>
+                            </div>
+                         </div>
+
+                    </div> {# End row #}
+
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-end"> {# Align buttons right #}
+                        <a href="{{ url_for('admin_manage_users') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-person-check-fill me-1"></i> Add Employee</button>
+                    </div>
+                </form>
+            </div> {# End card-body #}
+        </div> {# End card #}
+    </div> {# End col #}
+</div> {# End row #}
+{% endblock %}

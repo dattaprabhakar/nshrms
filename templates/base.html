@@ -90,9 +90,7 @@
                 </li>
                  <li class="nav-item"> <a class="nav-link disabled" href="#"><i class="bi bi-inbox-fill"></i> Inbox</a> </li>
                  <li class="sidebar-heading">Work</li>
-                 <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == 'my_team' else '' }}" href="{{ url_for('my_team') }}"> <i class="bi bi-people-fill"></i> My Team </a>
-                 </li>
+                 <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'my_team' else '' }}" href="{{ url_for('my_team') }}"> <i class="bi bi-people-fill"></i> My Team </a> </li>
                 <li class="sidebar-heading">Finance</li>
                 <li class="nav-item dropdown">
                     {% set finance_active = request.endpoint == 'view_payslips' %}
@@ -104,32 +102,24 @@
                     </ul>
                 </li>
                  <li class="sidebar-heading">Organization</li>
-                 {# --- MODIFIED Org Dropdown --- #}
                  <li class="nav-item dropdown">
-                     {% set org_active = request.endpoint == 'view_employee_directory' %} {# Add more org endpoints here #}
-                     <a class="nav-link dropdown-toggle {{ 'active-parent' if org_active else '' }}" href="#" id="orgDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                         <i class="bi bi-diagram-3-fill"></i> Org
-                     </a>
+                     {% set org_active = request.endpoint == 'view_employee_directory' %}
+                     <a class="nav-link dropdown-toggle {{ 'active-parent' if org_active else '' }}" href="#" id="orgDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-diagram-3-fill"></i> Org </a>
                      <ul class="dropdown-menu" aria-labelledby="orgDropdown">
-                         <li>
-                             <a class="dropdown-item {{ 'active' if request.endpoint == 'view_employee_directory' else '' }}"
-                                href="{{ url_for('view_employee_directory') }}">
-                                 <span><i class="bi bi-people"></i> Employees</span>
-                             </a>
-                         </li>
+                         <li> <a class="dropdown-item {{ 'active' if request.endpoint == 'view_employee_directory' else '' }}" href="{{ url_for('view_employee_directory') }}"> <span><i class="bi bi-people"></i> Employees</span> </a> </li>
                         <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-richtext"></i> Documents</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
                         <li><hr class="dropdown-divider"></li>
                          <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-megaphone"></i> Engage</span></a></li>
                      </ul>
                  </li>
-                 {# --- END MODIFIED Org Dropdown --- #}
                 {% endif %} {# End standard user links #}
 
                 <!-- ADMIN SECTION -->
                 {% if is_admin %}
                     <li class="sidebar-heading">Admin Portal</li>
                     <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}"> <i class="bi bi-speedometer2"></i> Admin Dashboard </a> </li>
-                    <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_manage_users' else '' }}" href="{{ url_for('admin_manage_users') }}"> <i class="bi bi-people-fill"></i> Manage Users </a> </li>
+                    {# --- MODIFIED Manage Users Active Link --- #}
+                    <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint in ['admin_manage_users', 'admin_add_user'] else '' }}" href="{{ url_for('admin_manage_users') }}"> <i class="bi bi-people-fill"></i> Manage Users </a> </li>
                     <li class="nav-item"> <a class="nav-link {{ 'active' if 'admin' in request.endpoint and 'leave' in request.endpoint else '' }}" href="{{ url_for('admin_manage_leaves') }}"> <i class="bi bi-calendar2-check-fill"></i> Manage Leaves </a> </li>
                     <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' else '' }}" href="{{ url_for('admin_settings') }}"> <i class="bi bi-gear-fill"></i> Settings </a> </li>
                 {% endif %}
@@ -155,9 +145,9 @@
                         {% if request.endpoint == 'my_team' %} {% set page_title = 'My Team' %}
                         {% elif request.endpoint == 'view_payslips' %} {% set page_title = 'My Pay' %}
                         {% elif 'admin' in request.endpoint and 'leave' in request.endpoint %} {% set page_title = 'Manage Leaves' %}
-                        {% elif request.endpoint == 'admin_manage_users' %} {% set page_title = 'Manage Users' %}
+                        {% elif request.endpoint in ['admin_manage_users', 'admin_add_user'] %} {% set page_title = 'Manage Users' %} {# Updated breadcrumb group #}
                         {% elif request.endpoint == 'admin_settings' %} {% set page_title = 'Settings' %}
-                        {% elif request.endpoint == 'view_employee_directory' %} {% set page_title = 'Org / Employees' %} {# Updated Breadcrumb #}
+                        {% elif request.endpoint == 'view_employee_directory' %} {% set page_title = 'Org / Employees' %}
                         {% endif %}
                         {# Show page title only if not on the main dashboard #}
                         {% if request.endpoint != 'dashboard' and request.endpoint != 'admin_dashboard' %} <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li> {% endif %}
