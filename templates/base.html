@@ -13,10 +13,10 @@
             --sidebar-link-hover-bg: #334155; --sidebar-link-active-bg: #0ea5e9;
             --sidebar-link-active-color: #ffffff; --dropdown-bg: #293548;
             --dropdown-item-hover-bg: #3e4f66; --main-bg: #f1f5f9; --card-border-color: #e2e8f0;
-            --text-muted-color: #64748b;
+            --text-muted-color: #64748b; --top-nav-bg: #4f46e5; /* Indigo-like purple */
         }
-        body { background-color: var(--main-bg); display: flex; }
-        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 0; overflow-y: auto; transition: width 0.3s ease; z-index: 1030; display: flex; flex-direction: column; }
+        body { background-color: var(--main-bg); display: flex; padding-top: 56px; /* Height of top navbar */}
+        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 0; overflow-y: auto; transition: width 0.3s ease; z-index: 1031; display: flex; flex-direction: column; margin-top: 56px; /* Move below top nav */}
         #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; border-left: 3px solid transparent; transition: background-color 0.2s ease, border-left-color 0.2s ease; }
         #sidebar .nav-link i { margin-right: 0.8rem; font-size: 1.2rem; width: 25px; text-align: center; }
         #sidebar .nav-link:hover { background-color: var(--sidebar-link-hover-bg); color: #ffffff; border-left-color: var(--sidebar-link-hover-bg); }
@@ -26,8 +26,7 @@
         #sidebar .logo-area { padding: 1rem 1.5rem; color: #ffffff; font-size: 1.5rem; font-weight: bold; text-align: center; border-bottom: 1px solid #334155; margin-bottom: 1rem; flex-shrink: 0; background-color: rgba(0,0,0,0.1); }
         #sidebar .logo-area i { margin-right: 0.5rem; }
         #sidebar .sidebar-menu { flex-grow: 1; overflow-y: auto; padding-bottom: 1rem; }
-        #sidebar .sidebar-footer { flex-shrink: 0; padding: 1rem 0; text-align: center; border-top: 1px solid #334155; margin-top: auto; }
-        #sidebar .sidebar-footer small { color: var(--sidebar-link-color); opacity: 0.6; font-size: 0.75rem;}
+        #sidebar .sidebar-footer { display: none; /* Footer removed for this layout */ }
         /* Dropdown */
         #sidebar .dropdown-toggle::after { display: none; }
         #sidebar .dropdown-menu { background-color: var(--dropdown-bg); border-radius: 0.375rem; border: 1px solid var(--sidebar-link-hover-bg); padding: 0.5rem 0; margin-top: 0.25rem !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); min-width: 200px; z-index: 1031; }
@@ -39,15 +38,34 @@
         #sidebar .dropdown-item.placeholder-link:hover { background-color: transparent; color: #94a3b8; }
         #sidebar .dropdown-item .chevron-placeholder { font-size: 0.7rem; opacity: 0.6; }
         #sidebar .dropdown-divider { border-color: var(--sidebar-link-hover-bg); margin: 0.5rem 0;}
-        /* Main Content */
-        #main-content { margin-left: var(--sidebar-width); padding: 0; width: calc(100% - var(--sidebar-width)); transition: margin-left 0.3s ease, width 0.3s ease; overflow-x: hidden; }
-        .top-bar { background-color: #ffffff; padding: 0.8rem 1.5rem; border-bottom: 1px solid var(--card-border-color); display: flex; justify-content: space-between; align-items: center; }
-        .top-bar .breadcrumb { margin-bottom: 0; font-size: 0.9rem; }
-        .top-bar .breadcrumb-item a { color: var(--sidebar-link-active-bg); text-decoration: none;}
-        .top-bar .breadcrumb-item.active { color: var(--text-muted-color); }
-        .top-bar .user-info a { text-decoration: none; color: var(--text-muted-color); font-size: 0.9rem;}
-        .top-bar .user-info i { margin-right: 0.5rem; }
-        .content-wrapper { padding: 1.5rem; }
+
+        /* --- NEW Top Navbar --- */
+        .top-navbar {
+            background-color: var(--top-nav-bg);
+            padding: 0.5rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1032; /* Above sidebar */
+            height: 56px;
+        }
+        .top-navbar .navbar-brand { color: #ffffff; font-weight: 600;}
+        .top-navbar .navbar-brand img { height: 30px; margin-right: 0.5rem; filter: brightness(0) invert(1); } /* Assuming white logo */
+        .top-navbar .form-control { background-color: rgba(255, 255, 255, 0.1); border: none; color: white; }
+        .top-navbar .form-control::placeholder { color: rgba(255, 255, 255, 0.6); }
+        .top-navbar .input-group-text { background-color: transparent; border: none; color: rgba(255, 255, 255, 0.6); }
+        .top-navbar .nav-link { color: rgba(255, 255, 255, 0.8); }
+        .top-navbar .nav-link:hover { color: #ffffff; }
+        .top-navbar .dropdown-menu { background-color: #ffffff; border-radius: 0.375rem; box-shadow: 0 .5rem 1rem rgba(0,0,0,.15); }
+        .top-navbar .dropdown-item { color: #334155; font-size: 0.9rem; }
+        .top-navbar .dropdown-item:hover { background-color: #f1f5f9; }
+        .top-navbar .user-avatar { width: 32px; height: 32px; }
+
+        /* Main Content Adjustment */
+        #main-content { margin-left: var(--sidebar-width); padding: 1.5rem; /* Re-add padding */ width: calc(100% - var(--sidebar-width)); transition: margin-left 0.3s ease, width 0.3s ease; overflow-x: hidden; }
+        /* Removed .top-bar styles as it's replaced */
+        /* Card Styles */
         .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.03); margin-bottom: 1.5rem; border-radius: 0.375rem; }
         .card-header { background-color: #fff; border-bottom: 1px solid var(--card-border-color); font-weight: 600; font-size: 0.95rem; padding: 1rem 1.25rem; }
         .card-body { padding: 1.25rem; }
@@ -58,111 +76,95 @@
     </style>
 </head>
 <body>
+    <!-- === NEW Top Navbar === -->
+     <nav class="navbar navbar-expand top-navbar">
+        <div class="container-fluid">
+             <!-- Logo/Brand -->
+            <a class="navbar-brand" href="{{ url_for('admin_dashboard' if is_admin else 'dashboard') }}">
+                {# Placeholder logo - replace with your actual logo image #}
+                <img src="https://via.placeholder.com/100x30/FFFFFF/FFFFFF?text=LOGO" alt="Logo">
+                {# Company Name (Optional) #}
+                {# Asset Telematics Private Limited #}
+            </a>
+
+             <!-- Search Bar (Placeholder) -->
+             <div class="mx-auto" style="width: 40%;">
+                <form class="d-flex" role="search">
+                     <div class="input-group input-group-sm">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input class="form-control" type="search" placeholder="Search employees or actions (Ex: Apply Leave)" aria-label="Search" disabled>
+                        <span class="input-group-text" style="background-color: rgba(255,255,255,0.1); font-size: 0.7rem; border-radius: 0 0.25rem 0.25rem 0;">Alt + K</span>
+                    </div>
+                </form>
+             </div>
+
+            <!-- Right Side Items -->
+             <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                 {# Placeholder icons #}
+                 <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-bell fs-5"></i></a></li>
+                 <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-grid-3x3-gap fs-5"></i></a></li>
+
+                 {# User Dropdown #}
+                 {% if session.user_id %}
+                 <li class="nav-item dropdown">
+                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                         {# Placeholder Avatar #}
+                         <img src="https://via.placeholder.com/32/B0BEC5/FFFFFF?text={{ session.username[0]|upper if session.username else 'U' }}" alt="User" class="rounded-circle user-avatar me-2">
+                         {# Username hidden on small screens maybe? Add d-none d-sm-block #}
+                         {# <span class="d-none d-sm-block">{{ session.username }}</span> #}
+                     </a>
+                     <ul class="dropdown-menu dropdown-menu-end">
+                         <li><h6 class="dropdown-header">{{ session.username }} {% if is_admin %}(Admin){% endif %}</h6></li>
+                         <li><a class="dropdown-item disabled" href="#"><i class="bi bi-person-circle me-2"></i> My Profile</a></li>
+                         <li><a class="dropdown-item disabled" href="#"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                         <li><hr class="dropdown-divider"></li>
+                         <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                     </ul>
+                 </li>
+                 {% else %}
+                  <li class="nav-item">
+                     <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                  </li>
+                 {% endif %}
+             </ul>
+        </div>
+    </nav>
+    <!-- === END Top Navbar === -->
+
+
     <!-- Sidebar -->
     <div id="sidebar">
-        <div class="logo-area">
-             <i class="bi bi-person-workspace"></i> HRMS
-        </div>
-
-        <div class="sidebar-menu">
+        {# Sidebar content remains the same as the previous full update #}
+         <div class="sidebar-menu mt-3"> {# Added margin-top to clear logo area if needed #}
             <ul class="nav flex-column">
-                <!-- Home Link -->
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if request.endpoint == ('admin_dashboard' if is_admin else 'dashboard') else '' }}"
-                       href="{{ url_for('admin_dashboard' if is_admin else 'dashboard') }}">
-                        <i class="bi bi-house-door-fill"></i> Home
-                    </a>
-                </li>
-
+                 <!-- Home Link -->
+                <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == ('admin_dashboard' if is_admin else 'dashboard') else '' }}" href="{{ url_for('admin_dashboard' if is_admin else 'dashboard') }}"> <i class="bi bi-house-door-fill"></i> Home </a> </li>
                 <!-- Standard User Links -->
                 {% if not is_admin %}
-                <li class="nav-item dropdown">
-                    {% set me_active = request.endpoint in ['view_attendance', 'view_leaves', 'apply_leave'] %}
-                    <a class="nav-link dropdown-toggle {{ 'active-parent' if me_active else '' }}" href="#" id="meDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-person-fill"></i> Me </a>
-                    <ul class="dropdown-menu" aria-labelledby="meDropdown">
-                        <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_attendance' else '' }}" href="{{ url_for('view_attendance') }}"><i class="bi bi-calendar-check"></i> Attendance</a></li>
-                        <li><a class="dropdown-item {{ 'active' if 'leave' in request.endpoint else '' }}" href="{{ url_for('view_leaves') }}"><i class="bi bi-calendar-x"></i> Leave</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-graph-up"></i> Performance</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li>
-                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-briefcase"></i> Expenses & Travel</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li>
-                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-grid-1x2"></i> Apps</span></a></li>
-                    </ul>
-                </li>
+                <li class="nav-item dropdown"> {% set me_active = request.endpoint in ['view_attendance', 'view_leaves', 'apply_leave'] %} <a class="nav-link dropdown-toggle {{ 'active-parent' if me_active else '' }}" href="#" id="meDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-person-fill"></i> Me </a> <ul class="dropdown-menu" aria-labelledby="meDropdown"> <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_attendance' else '' }}" href="{{ url_for('view_attendance') }}"><i class="bi bi-calendar-check"></i> Attendance</a></li> <li><a class="dropdown-item {{ 'active' if 'leave' in request.endpoint else '' }}" href="{{ url_for('view_leaves') }}"><i class="bi bi-calendar-x"></i> Leave</a></li> <li><hr class="dropdown-divider"></li> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-graph-up"></i> Performance</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-briefcase"></i> Expenses & Travel</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-grid-1x2"></i> Apps</span></a></li> </ul> </li>
                  <li class="nav-item"> <a class="nav-link disabled" href="#"><i class="bi bi-inbox-fill"></i> Inbox</a> </li>
                  <li class="sidebar-heading">Work</li>
                  <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'my_team' else '' }}" href="{{ url_for('my_team') }}"> <i class="bi bi-people-fill"></i> My Team </a> </li>
                 <li class="sidebar-heading">Finance</li>
-                <li class="nav-item dropdown">
-                    {% set finance_active = request.endpoint == 'view_payslips' %}
-                    <a class="nav-link dropdown-toggle {{ 'active-parent' if finance_active else '' }}" href="#" id="financeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-currency-dollar"></i> My Finances </a>
-                    <ul class="dropdown-menu" aria-labelledby="financeDropdown">
-                         <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-text"></i> Summary</span></a></li>
-                        <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_payslips' else '' }}" href="{{ url_for('view_payslips') }}"><i class="bi bi-wallet2"></i> My Pay</a></li>
-                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-receipt"></i> Manage Tax</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
-                    </ul>
-                </li>
+                <li class="nav-item dropdown"> {% set finance_active = request.endpoint == 'view_payslips' %} <a class="nav-link dropdown-toggle {{ 'active-parent' if finance_active else '' }}" href="#" id="financeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-currency-dollar"></i> My Finances </a> <ul class="dropdown-menu" aria-labelledby="financeDropdown"> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-text"></i> Summary</span></a></li> <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_payslips' else '' }}" href="{{ url_for('view_payslips') }}"><i class="bi bi-wallet2"></i> My Pay</a></li> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-receipt"></i> Manage Tax</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li> </ul> </li>
                  <li class="sidebar-heading">Organization</li>
-                 <li class="nav-item dropdown">
-                     {% set org_active = request.endpoint == 'view_employee_directory' %}
-                     <a class="nav-link dropdown-toggle {{ 'active-parent' if org_active else '' }}" href="#" id="orgDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-diagram-3-fill"></i> Org </a>
-                     <ul class="dropdown-menu" aria-labelledby="orgDropdown">
-                         <li> <a class="dropdown-item {{ 'active' if request.endpoint == 'view_employee_directory' else '' }}" href="{{ url_for('view_employee_directory') }}"> <span><i class="bi bi-people"></i> Employees</span> </a> </li>
-                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-richtext"></i> Documents</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
-                        <li><hr class="dropdown-divider"></li>
-                         <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-megaphone"></i> Engage</span></a></li>
-                     </ul>
-                 </li>
+                 <li class="nav-item dropdown"> {% set org_active = request.endpoint == 'view_employee_directory' %} <a class="nav-link dropdown-toggle {{ 'active-parent' if org_active else '' }}" href="#" id="orgDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> <i class="bi bi-diagram-3-fill"></i> Org </a> <ul class="dropdown-menu" aria-labelledby="orgDropdown"> <li> <a class="dropdown-item {{ 'active' if request.endpoint == 'view_employee_directory' else '' }}" href="{{ url_for('view_employee_directory') }}"> <span><i class="bi bi-people"></i> Employees</span> </a> </li> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-richtext"></i> Documents</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li> <li><hr class="dropdown-divider"></li> <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-megaphone"></i> Engage</span></a></li> </ul> </li>
                 {% endif %} {# End standard user links #}
-
                 <!-- ADMIN SECTION -->
                 {% if is_admin %}
                     <li class="sidebar-heading">Admin Portal</li>
                     <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}"> <i class="bi bi-speedometer2"></i> Admin Dashboard </a> </li>
-                    {# --- MODIFIED Manage Users Active Link --- #}
                     <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint in ['admin_manage_users', 'admin_add_user'] else '' }}" href="{{ url_for('admin_manage_users') }}"> <i class="bi bi-people-fill"></i> Manage Users </a> </li>
                     <li class="nav-item"> <a class="nav-link {{ 'active' if 'admin' in request.endpoint and 'leave' in request.endpoint else '' }}" href="{{ url_for('admin_manage_leaves') }}"> <i class="bi bi-calendar2-check-fill"></i> Manage Leaves </a> </li>
                     <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' else '' }}" href="{{ url_for('admin_settings') }}"> <i class="bi bi-gear-fill"></i> Settings </a> </li>
                 {% endif %}
-                <!-- END ADMIN SECTION -->
             </ul>
         </div> <!-- /sidebar-menu -->
-
-         <div class="sidebar-footer"> <small>© {{ now.year }} Your Company</small> </div>
+        {# Sidebar footer removed for this layout #}
     </div> <!-- /sidebar -->
 
     <!-- Main Content Area -->
     <div id="main-content">
-        <!-- Top Bar -->
-         <div class="top-bar">
-             <div>
-                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb bg-transparent p-0 m-0">
-                         {% set base_url = url_for('admin_dashboard' if is_admin else 'dashboard') %}
-                         {% set base_title = "Admin" if is_admin else "Home" %}
-                        <li class="breadcrumb-item"><a href="{{ base_url }}">{{ base_title }}</a></li>
-                        {# Determine Page Title #}
-                        {% set page_title = request.endpoint | replace('admin_', '') | replace('view_', '') | replace('_', ' ') | title %}
-                        {% if request.endpoint == 'my_team' %} {% set page_title = 'My Team' %}
-                        {% elif request.endpoint == 'view_payslips' %} {% set page_title = 'My Pay' %}
-                        {% elif 'admin' in request.endpoint and 'leave' in request.endpoint %} {% set page_title = 'Manage Leaves' %}
-                        {% elif request.endpoint in ['admin_manage_users', 'admin_add_user'] %} {% set page_title = 'Manage Users' %} {# Updated breadcrumb group #}
-                        {% elif request.endpoint == 'admin_settings' %} {% set page_title = 'Settings' %}
-                        {% elif request.endpoint == 'view_employee_directory' %} {% set page_title = 'Org / Employees' %}
-                        {% endif %}
-                        {# Show page title only if not on the main dashboard #}
-                        {% if request.endpoint != 'dashboard' and request.endpoint != 'admin_dashboard' %} <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li> {% endif %}
-                    </ol>
-                </nav>
-             </div>
-             <div class="user-info d-flex align-items-center">
-                 {% if session.user_id %}
-                    <span class="me-3 text-nowrap"><i class="bi bi-person-circle me-1"></i> {{ session.username }} {% if is_admin %}<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle rounded-pill ms-1 small">Admin</span>{% endif %}</span>
-                    <a href="{{ url_for('logout') }}" title="Logout" class="text-danger text-nowrap"> <i class="bi bi-box-arrow-right"></i> Logout </a>
-                 {% else %} <a href="{{ url_for('login') }}"> <i class="bi bi-box-arrow-in-right"></i> Login </a>
-                 {% endif %}
-             </div>
-         </div> <!-- /top-bar -->
-
         <!-- Content Wrapper with Padding -->
         <div class="content-wrapper">
             <!-- Flash Messages Container -->

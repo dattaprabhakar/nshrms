@@ -1,178 +1,218 @@
-{# templates/dashboard.html - Standard User Dashboard #}
+{# templates/dashboard.html - Keka-Inspired Layout #}
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-{# Welcome banner - customize as needed #}
-<div class="p-4 mb-4 bg-light rounded-3">
-  <div class="container-fluid py-3">
-    <h1 class="display-6 fw-bold">Welcome, {{ user.full_name | title }}!</h1>
-    <p class="col-md-8 fs-5">Your Employee ID: {{ user.employee_id }}. Access your HRMS details below.</p>
-  </div>
-</div>
+<style>
+    /* Widget specific styles */
+    .widget-card { margin-bottom: 1.5rem; border: none; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.03); border-radius: 0.5rem; /* More rounded */ }
+    .widget-card .card-header { background-color: #fff; border-bottom: 1px solid var(--card-border-color); font-weight: 600; font-size: 0.9rem; padding: 0.75rem 1rem; }
+    .widget-card .card-body { padding: 1rem; }
+    .widget-card .card-title { font-size: 0.9rem; font-weight: 600; color: var(--text-muted-color); margin-bottom: 0.75rem; }
+
+    /* Quick Access */
+    .quick-access-card { background-color: #e9d5ff; } /* Light purple */
+    .quick-access-card .card-body { padding: 1rem; }
+
+    /* Holidays */
+    .holidays-card { background: linear-gradient(to right, #2dd4bf, #38bdf8); color: white; position: relative; overflow: hidden; min-height: 120px; }
+    .holidays-card .card-body { position: relative; z-index: 2; }
+    .holidays-card h5 { font-size: 1.1rem; font-weight: bold; }
+    .holidays-card small { opacity: 0.9; }
+    .holidays-card .view-all-link { position: absolute; top: 0.75rem; right: 1rem; color: white; font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 0.2rem 0.5rem; border-radius: 0.25rem; text-decoration: none; }
+    .holidays-card .nav-arrow { position: absolute; top: 50%; transform: translateY(-50%); font-size: 1.5rem; opacity: 0.6; color: white; cursor: pointer; z-index: 3; }
+    .holidays-card .nav-arrow.prev { left: 0.5rem; }
+    .holidays-card .nav-arrow.next { right: 0.5rem; }
+
+    /* Time Today */
+    .time-card { background-color: #6366f1; color: white; }
+    .time-card .card-body { text-align: center; }
+    .time-card .time-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;}
+    .time-card .time-card-title { font-size: 0.9rem; font-weight: 500; opacity: 0.85; margin-bottom: 0;}
+    .time-card .btn-view-all { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 0.8rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; text-decoration: none; }
+    .time-card .current-time { font-size: 2.5rem; font-weight: bold; line-height: 1; letter-spacing: -1px; margin-bottom: 0.5rem;}
+    .time-card .current-time small { font-size: 1rem; margin-left: 4px; font-weight: normal; }
+    .time-card .btn-web-clock { background-color: #ffffff; border-color: #ffffff; color: #4f46e5; font-weight: 500; padding: 0.4rem 1rem; font-size: 0.9rem;}
+    .time-card .btn-group > .btn:not(:last-child):not(.dropdown-toggle) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    .time-card .btn-group > .dropdown-toggle { border-top-left-radius: 0; border-bottom-left-radius: 0; background-color: white; color: #4f46e5; border-color: #ffffff; padding: 0.4rem 0.6rem; }
+    .time-card .attendance-status-text { margin-top: 0.75rem; font-size: 0.9rem; }
+    .time-card .attendance-times { font-size: 0.75rem; color: rgba(255,255,255,0.8); margin-top: 0.25rem;}
+
+    /* Inbox */
+    .inbox-card .card-body { padding-top: 1.5rem; padding-bottom: 1.5rem; text-align: center;}
+    .inbox-card i { font-size: 2.5rem; color: #fb7185; }
+    .inbox-card h6 { margin-top: 0.5rem; margin-bottom: 0.1rem; font-weight: 600; }
+
+    /* Leave Balances */
+    .leave-balances-card .card-body { padding-bottom: 0.5rem; }
+    .leave-balances-card .actions { text-align: center; margin-top: 1rem; border-top: 1px solid var(--card-border-color); padding-top: 0.75rem; }
+    .leave-balances-card .btn { font-size: 0.85rem; }
+
+    /* Feed Input */
+    .feed-card .nav-link { font-size: 0.9rem; padding: 0.5rem 1rem; }
+    .feed-card .nav-pills .nav-link.active { background-color: var(--top-nav-bg); color: white; }
+    .feed-card .btn-feed-action { font-size: 0.85rem; color: var(--text-muted-color); }
+    .feed-card .btn-feed-action:hover { color: #334155; }
+    .feed-card .btn-feed-action i { margin-right: 0.3rem; }
+    .feed-card textarea { font-size: 0.9rem; }
+
+    /* Announcements */
+    .announcements-card .card-header { display: flex; justify-content: space-between; align-items: center; }
+    .announcements-card .carousel-indicators { margin-bottom: -0.5rem; } /* Adjust indicator position */
+    .announcements-card .carousel-indicators button { width: 8px; height: 8px; border-radius: 50%; background-color: #adb5bd; }
+    .announcements-card .carousel-indicators .active { background-color: var(--top-nav-bg); }
+    .announcements-card .announcement-item h6 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.2rem;}
+    .announcements-card .announcement-item p { font-size: 0.85rem; color: var(--text-muted-color); margin-bottom: 0.3rem;}
+    .announcements-card .announcement-item .view-more { font-size: 0.8rem; }
+    .announcements-card .btn-add { background-color: var(--top-nav-bg); color: white; width: 28px; height: 28px; line-height: 28px; padding: 0; font-size: 1rem; }
+
+    /* Events Card */
+    .events-card .nav-link { font-size: 0.85rem; padding: 0.5rem 0.8rem; color: var(--text-muted-color); }
+    .events-card .nav-pills .nav-link.active { background-color: var(--top-nav-bg); color: white; }
+    .events-card .tab-pane { text-align: center; padding: 2rem 1rem; }
+    .events-card .tab-pane i { font-size: 3rem; color: #dee2e6; } /* Light gray icon */
+    .events-card .tab-pane p { margin-top: 0.5rem; color: var(--text-muted-color); }
+
+</style>
 
 <div class="row">
-    <!-- Left Column -->
-    <div class="col-lg-5 col-md-6">
 
-        <!-- Time Card -->
-        <div class="card time-card mb-4">
-             <style>
-                .time-card { background-color: #6366f1; color: white; border-radius: 0.5rem; } /* Indigo, more rounded */
-                .time-card .card-body { text-align: center; padding: 1.5rem; } /* More padding */
-                .time-card .time-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;} /* Header area */
-                .time-card .time-card-title { font-size: 0.9rem; font-weight: 500; opacity: 0.85; margin-bottom: 0;}
-                .time-card .btn-view-all { background-color: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 0.8rem; padding: 0.25rem 0.75rem; }
-                .time-card .btn-view-all:hover { background-color: rgba(255,255,255,0.25); }
-                .time-card .current-date { font-size: 0.95rem; font-weight: 500; opacity: 0.9; margin-bottom: 0.5rem;}
-                .time-card .current-time { font-size: 3rem; font-weight: bold; line-height: 1; letter-spacing: -1px; margin-bottom: 1.5rem; }
-                .time-card .current-time small { font-size: 1.2rem; margin-left: 5px; font-weight: normal; opacity: 0.9; }
-                /* Button styling */
-                .time-card .btn-web-clock { background-color: #ffffff; border-color: #ffffff; color: #4f46e5; /* Indigo dark text */ font-weight: 500; padding: 0.5rem 1.2rem; } /* Adjusted padding */
-                .time-card .btn-web-clock:hover { background-color: #f1f5f9; border-color: #f1f5f9; }
-                /* Ensure dropdown toggle has similar style */
-                .time-card .btn-group > .btn:not(:last-child):not(.dropdown-toggle) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
-                .time-card .btn-group > .dropdown-toggle { border-top-left-radius: 0; border-bottom-left-radius: 0; background-color: white; color: #4f46e5; border-color: #ffffff;}
-                 .time-card .btn-group > .dropdown-toggle:hover { background-color: #f1f5f9; border-color: #f1f5f9; }
-
-                .time-card .attendance-status-text { margin-top: 1rem; font-size: 0.95rem; opacity: 0.95; }
-                .time-card .attendance-status-text i { margin-right: 0.3rem; }
-                .time-card .attendance-times { font-size: 0.8rem; color: rgba(255,255,255,0.8); margin-top: 0.25rem;}
-             </style>
-             <div class="card-body">
-                 <div class="time-card-header">
-                     <h6 class="time-card-title">Time Today</h6>
-                     <a href="{{ url_for('view_attendance') }}" class="btn btn-sm btn-view-all">View All</a>
-                 </div>
-                <p class="current-date">{{ now.strftime('%B %d, %Y %A') }}</p>
-                <div class="current-time mb-3" id="current-time-display">
-                    {{ now.strftime('%-I:%M') }}<small>{{ now.strftime('%p') }}</small>
-                </div>
-
-                <!-- === MODIFIED Attendance Actions/Status === -->
-                <div class="attendance-actions">
-                    {% if not attendance_status.clocked_in %}
-                        {# Show Web Clock-In Button + Other Dropdown #}
-                        <div class="btn-group shadow-sm" role="group" aria-label="Clock In Actions">
-                            <form action="{{ url_for('clock_in') }}" method="POST" style="display: contents;">
-                                <button type="submit" class="btn btn-light btn-web-clock">
-                                    Web Clock-In
-                                </button>
-                            </form>
-                            <div class="btn-group" role="group">
-                                <button id="clockInOtherOptions" type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Other
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="clockInOtherOptions">
-                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-house-gear me-2"></i> Request Work From Home</a></li>
-                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-briefcase me-2"></i> Request On Duty</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-calendar2-x me-2"></i> Regularize Attendance</a></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                    {% elif not attendance_status.clocked_out %}
-                        {# Show Web Clock-Out Button + Other Dropdown #}
-                         <div class="btn-group shadow-sm" role="group" aria-label="Clock Out Actions">
-                            <form action="{{ url_for('clock_out') }}" method="POST" style="display: contents;">
-                                <button type="submit" class="btn btn-light btn-web-clock">
-                                    Web Clock-Out
-                                </button>
-                            </form>
-                             <div class="btn-group" role="group">
-                                <button id="clockOutOtherOptions" type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Other
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="clockOutOtherOptions">
-                                     <li><a class="dropdown-item disabled" href="#"><i class="bi bi-cup-hot me-2"></i> Add Break</a></li>
-                                     <li><hr class="dropdown-divider"></li>
-                                     <li><a class="dropdown-item disabled" href="#"><i class="bi bi-calendar2-x me-2"></i> Regularize Attendance</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                         <p class="attendance-times mt-2 mb-0">
-                             <small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }}</small>
-                         </p>
-
-                    {% else %}
-                        {# Show Attendance Complete Status #}
-                         <p class="attendance-status-text text-white">
-                             <i class="bi bi-check-circle-fill"></i> Attendance complete.
-                         </p>
-                         <p class="attendance-times mb-0">
-                             <small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }} | Out: {{ attendance_status.clock_out_time.strftime('%H:%M') }}</small>
-                         </p>
-                    {% endif %}
-                </div>
-                 <!-- === END MODIFIED === -->
+    <!-- ===== Left Column Widgets ===== -->
+    <div class="col-lg-4">
+        <!-- Quick Access -->
+        <div class="widget-card quick-access-card">
+            <div class="card-body">
+                <h6 class="card-title fw-bold text-purple-800">Quick Access</h6>
+                <div class="alert alert-light p-2 small" role="alert"> For HR Queries: Contact HR (hr@example.com) </div>
+                <p class="text-muted text-center mt-2 mb-0 small">No Quick Links added yet.</p>
             </div>
         </div>
 
-        <!-- Leave Balances Card -->
-        <div class="card mb-4">
+        <!-- Holidays -->
+        <div class="widget-card holidays-card">
+            <a href="#" class="view-all-link disabled">View All</a>
+            <span class="nav-arrow prev disabled"><i class="bi bi-chevron-left"></i></span>
+            <span class="nav-arrow next disabled"><i class="bi bi-chevron-right"></i></span>
+            <div class="card-body">
+                <h6 class="card-title text-white small opacity-75 mb-3">Holidays</h6>
+                <h5>Independence Day</h5>
+                <small>Friday, 15 August, {{ now.year + 1 }}</small>
+            </div>
+        </div>
+
+        <!-- Time Today -->
+        <div class="widget-card time-card">
+            <div class="card-body">
+                <div class="time-card-header"> <h6 class="time-card-title">Time Today</h6> <a href="{{ url_for('view_attendance') }}" class="btn btn-sm btn-view-all">View All</a> </div>
+                <div class="current-time mb-3" id="current-time-display"> {{ now.strftime('%-I:%M') }}<small>{{ now.strftime('%p') }}</small> </div>
+                <div class="attendance-actions">
+                    {% if not attendance_status.clocked_in %}
+                        <div class="btn-group shadow-sm" role="group"> <form action="{{ url_for('clock_in') }}" method="POST" style="display: contents;"> <button type="submit" class="btn btn-light btn-web-clock"> Web Clock-In </button> </form> <div class="btn-group" role="group"> <button id="clockInOtherOptions" type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Other</button> <ul class="dropdown-menu" aria-labelledby="clockInOtherOptions"> <li><a class="dropdown-item disabled" href="#"><i class="bi bi-house-gear me-2"></i> Request WFH</a></li> <li><a class="dropdown-item disabled" href="#"><i class="bi bi-briefcase me-2"></i> Request On Duty</a></li> </ul> </div> </div>
+                    {% elif not attendance_status.clocked_out %}
+                         <div class="btn-group shadow-sm" role="group"> <form action="{{ url_for('clock_out') }}" method="POST" style="display: contents;"> <button type="submit" class="btn btn-light btn-web-clock"> Web Clock-Out </button> </form> <div class="btn-group" role="group"> <button id="clockOutOtherOptions" type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Other</button> <ul class="dropdown-menu" aria-labelledby="clockOutOtherOptions"> <li><a class="dropdown-item disabled" href="#"><i class="bi bi-cup-hot me-2"></i> Add Break</a></li> <li><a class="dropdown-item disabled" href="#"><i class="bi bi-calendar2-x me-2"></i> Regularize</a></li> </ul> </div> </div>
+                         <p class="attendance-times mt-2 mb-0"> <small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }}</small> </p>
+                    {% else %}
+                         <p class="attendance-status-text text-white"> <i class="bi bi-check-circle-fill"></i> Attendance complete. </p>
+                         <p class="attendance-times mb-0"> <small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }} | Out: {{ attendance_status.clock_out_time.strftime('%H:%M') }}</small> </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Inbox -->
+        <div class="widget-card inbox-card">
+            <div class="card-body"> <i class="bi bi-envelope-paper-heart"></i> <h6>Good job!</h6> <p class="text-muted mb-0 small">You have no pending actions.</p> </div>
+        </div>
+
+        <!-- Leave Balances -->
+        <div class="widget-card leave-balances-card">
             <div class="card-header">Leave Balances</div>
             <div class="card-body">
                 <div class="row text-center">
-                    <!-- Placeholder Balances -->
                     <div class="col-4"> <div class="leave-balance-circle"><span class="days">8</span> Days</div> <span class="leave-balance-label">Paid</span> </div>
                     <div class="col-4"> <div class="leave-balance-circle"><span class="days">2.5</span> Days</div> <span class="leave-balance-label">Sick</span> </div>
                     <div class="col-4"> <div class="leave-balance-circle"><span class="days">1</span> Day</div> <span class="leave-balance-label">Casual</span> </div>
                 </div>
-                <hr class="my-3">
-                <div class="text-center">
+                <div class="actions">
                     <a href="{{ url_for('apply_leave') }}" class="btn btn-outline-primary btn-sm me-2"><i class="bi bi-calendar-plus"></i> Request Leave</a>
                     <a href="{{ url_for('view_leaves') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-journal-text"></i> View History</a>
                 </div>
             </div>
         </div>
-         <!-- Inbox Card -->
-        <div class="card mb-4">
-            <div class="card-header">Inbox</div>
-            <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div> <i class="bi bi-envelope-paper-heart" style="font-size: 3rem; color: #fb7185;"></i> </div>
-                    <div class="ms-3"> <h6 class="mb-1">Good job!</h6> <p class="text-muted mb-0 small">You have no pending actions.</p> </div>
+    </div>
+
+    <!-- ===== Right Column Widgets ===== -->
+    <div class="col-lg-8">
+        <!-- Feed Input -->
+         <div class="widget-card feed-card">
+             <div class="card-body">
+                 <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                    <li class="nav-item" role="presentation"> <button class="nav-link active" id="pills-org-tab" data-bs-toggle="pill" data-bs-target="#pills-org" type="button" role="tab">Organization</button> </li>
+                    <li class="nav-item" role="presentation"> <button class="nav-link" id="pills-dept-tab" data-bs-toggle="pill" data-bs-target="#pills-dept" type="button" role="tab">My Department</button> </li>
+                </ul>
+                <div class="tab-content" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="pills-org" role="tabpanel">
+                         <textarea class="form-control mb-2" rows="3" placeholder="Write your post here and mention your peers..." disabled></textarea>
+                         <div class="d-flex justify-content-between align-items-center">
+                             <div>
+                                 <button class="btn btn-sm btn-feed-action disabled"><i class="bi bi-pencil-fill"></i> Post</button>
+                                 <button class="btn btn-sm btn-feed-action disabled"><i class="bi bi-bar-chart-fill"></i> Poll</button>
+                                 <button class="btn btn-sm btn-feed-action disabled"><i class="bi bi-award-fill"></i> Praise</button>
+                             </div>
+                             <button class="btn btn-primary btn-sm disabled">Submit</button>
+                         </div>
+                    </div>
+                    <div class="tab-pane fade" id="pills-dept" role="tabpanel"><p class="text-muted p-3 text-center small">Department feed placeholder</p></div>
                 </div>
             </div>
         </div>
-    </div><!-- /Left Column -->
 
-    <!-- Right Column -->
-    <div class="col-lg-7 col-md-6">
-         <!-- Announcements Card -->
-        <div class="card mb-4">
-              <div class="card-header d-flex justify-content-between align-items-center">Announcements<a href="#" class="btn btn-sm btn-outline-secondary disabled">View All</a></div>
+        <!-- Announcements -->
+        <div class="widget-card announcements-card">
+            <div class="card-header">
+                Announcements
+                {# Placeholder Add Button #}
+                <button class="btn btn-sm btn-add disabled" title="Add Announcement (Admin Only?)"><i class="bi bi-plus"></i></button>
+            </div>
             <div class="card-body">
-                <div class="announcement-item mb-3 pb-3 border-bottom"><h6>Holiday: May Day</h6><p class="text-muted small mb-1">HR - 2 days ago</p><p class="mb-1 small">Office closed tomorrow, May 1st...</p><a href="#" class="small">view more</a></div>
-                <div class="announcement-item mb-3"><h6>System Maintenance</h6><p class="text-muted small mb-1">IT - 3 days ago</p><p class="mb-1 small">Servers down this Saturday...</p><a href="#" class="small">view more</a></div>
-                <p class="text-muted text-center mt-3 small">No more announcements.</p>
+                 {# Simple Placeholder - Replace with Carousel or dynamic list later #}
+                 <div class="announcement-item">
+                     <h6>Holiday Announcement -- 1st May {{ now.year }}</h6>
+                     <p>Dear Team, This is to inform you that the management has declared a holiday tomorrow, Thursday, 1st May {{ now.year }}, on the occasion of May Day....</p>
+                     <a href="#" class="view-more small">view more</a>
+                     {# Placeholder like/comment counts #}
+                     <div class="text-muted small mt-2">
+                         <i class="bi bi-hand-thumbs-up"></i> 0   <i class="bi bi-chat-left"></i> 0
+                     </div>
+                 </div>
             </div>
         </div>
 
-         <!-- Quick Access Card (Placeholder) -->
-        <div class="card mb-4">
-            <div class="card-header">Quick Access</div>
-            <div class="card-body">
-                <div class="alert alert-secondary" role="alert" style="font-size: 0.85rem;"> For HR Queries: Contact HR (hr@example.com) </div>
-                <p class="text-muted text-center mt-3">No Quick Links added yet.</p>
+         <!-- Events Card -->
+        <div class="widget-card events-card">
+             <div class="card-header bg-transparent border-0">
+                 <ul class="nav nav-pills nav-fill" id="events-tab" role="tablist">
+                    <li class="nav-item" role="presentation"> <button class="nav-link active" id="birthdays-tab" data-bs-toggle="pill" data-bs-target="#birthdays-pane" type="button" role="tab"><i class="bi bi-cake2 me-1"></i> 0 Birthdays</button> </li>
+                    <li class="nav-item" role="presentation"> <button class="nav-link" id="anniv-tab" data-bs-toggle="pill" data-bs-target="#anniv-pane" type="button" role="tab"><i class="bi bi-stars me-1"></i> 0 Work Anniversaries</button> </li>
+                    <li class="nav-item" role="presentation"> <button class="nav-link" id="newbee-tab" data-bs-toggle="pill" data-bs-target="#newbee-pane" type="button" role="tab"><i class="bi bi-person-plus me-1"></i> 0 New joinees</button> </li>
+                </ul>
+             </div>
+            <div class="card-body p-0">
+                 <div class="tab-content" id="events-tabContent">
+                    <div class="tab-pane fade show active" id="birthdays-pane" role="tabpanel">
+                        <i class="bi bi-cake2"></i><p>No birthdays today.</p>
+                    </div>
+                    <div class="tab-pane fade" id="anniv-pane" role="tabpanel">
+                        <i class="bi bi-stars"></i><p>No work anniversaries today.</p>
+                    </div>
+                     <div class="tab-pane fade" id="newbee-pane" role="tabpanel">
+                        <i class="bi bi-person-plus"></i><p>No new employees joined recently.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Holidays Card -->
-        <div class="card holiday-card mb-4">
-             <style>
-                .holiday-card { background: linear-gradient(to right, #2dd4bfcc, #38bdf8cc), url('https://images.unsplash.com/photo-1543713870-93b4415436b8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60') center center/cover no-repeat; color: white; position: relative; overflow: hidden; border-radius: 0.5rem;}
-                .holiday-card .card-body { position: relative; z-index: 2; padding: 1.5rem;} .holiday-card::before { content: ''; position: absolute; inset: 0; background-color: rgba(0,0,0,0.1); z-index: 1;}
-                .holiday-card .holiday-icon { font-size: 4rem; opacity: 0.1; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 1;}
-             </style>
-             <i class="bi bi-flag holiday-icon"></i>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2"> <h6 class="card-title mb-0 text-white">Holidays</h6> <a href="#" class="btn btn-sm btn-outline-light disabled">View All</a> </div>
-                <h5>Independence Day</h5> <p class="mb-0"><small>Fri, 15 Aug, {{ now.year + 1 }}</small></p>
-            </div>
-        </div>
-    </div><!-- /Right Column -->
+    </div>
 </div><!-- /Row -->
 {% endblock %}
 
@@ -180,17 +220,17 @@
 {% block scripts %}
 <script>
     // Live Clock Update Script
-    function updateTime() {
-        const timeDisplay = document.getElementById('current-time-display');
-        if (timeDisplay) {
+    function updateLiveClock() {
+        const clockDisplay = document.getElementById('current-time-display'); // Use ID from Time Card
+        if (clockDisplay) {
             const now = new Date();
             const hours = now.toLocaleTimeString(navigator.language, {hour: 'numeric', hour12: true}).split(' ')[0];
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const ampm = now.toLocaleTimeString(navigator.language, {hour12: true}).split(' ')[1];
-            timeDisplay.innerHTML = `${hours}:${minutes}<small style="font-size: 1.2rem; margin-left: 5px; font-weight: normal; opacity: 0.9;">${ampm}</small>`;
+            clockDisplay.innerHTML = `${hours}:${minutes}<small style="font-size: 1.2rem; margin-left: 5px; font-weight: normal; opacity: 0.9;">${ampm}</small>`;
         }
     }
-    updateTime();
-    const clockInterval = setInterval(updateTime, 1000);
+    updateLiveClock();
+    const liveClockInterval = setInterval(updateLiveClock, 1000);
 </script>
 {% endblock %}
