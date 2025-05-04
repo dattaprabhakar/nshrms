@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Forbidden{% endblock %}
+{% block content %}
+<div class="container text-center py-5">
+    <h1 class="display-1 text-warning">403</h1>
+    <p class="lead">Access Denied / Forbidden</p>
+    <p>You do not have permission to access this resource.</p>
+    <a href="{{ url_for('admin_dashboard' if is_admin else 'dashboard') }}" class="btn btn-warning mt-3">Go to Homepage</a>
+</div>
+{% endblock %}

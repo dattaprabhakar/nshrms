@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Internal Server Error{% endblock %}
+{% block content %}
+<div class="container text-center py-5">
+    <h1 class="display-1 text-danger">500</h1>
+    <p class="lead">Internal Server Error</p>
+    <p>We seem to be experiencing some technical difficulties. Please try again later.</p>
+    {% if app.debug %}
+    <!-- Show error details only in debug mode -->
+    <!-- Note: Passing the actual error 'e' here requires modifying the error handler in app.py -->
+    <!-- <p><small>Error details available in console.</small></p> -->
+    {% endif %}
+    <a href="{{ url_for('admin_dashboard' if is_admin else 'dashboard') }}" class="btn btn-secondary mt-3">Go to Homepage</a>
+</div>
+{% endblock %}
