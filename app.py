@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 # --- Database and ObjectId ---
 from pymongo import MongoClient, ReturnDocument
 from bson import ObjectId
+from bson.errors import InvalidId # <<< --- IMPORT ADDED HERE --- <<<
 # --- Standard Python Libraries ---
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -32,9 +33,7 @@ app.config['DEBUG'] = os.environ.get('FLASK_ENV', 'production').lower() == 'deve
 PAYSLIP_STORAGE_PATH = os.getenv("PAYSLIP_FOLDER")
 if not PAYSLIP_STORAGE_PATH:
     print("CRITICAL: PAYSLIP_FOLDER environment variable not set. Payslip downloads will fail.")
-    # You might want to default to a clearly invalid path or exit depending on requirements
     PAYSLIP_STORAGE_PATH = None # Indicate that it's not configured
-    # exit(1) # Alternatively, force exit if payslips are critical
 elif not os.path.isdir(PAYSLIP_STORAGE_PATH):
     print(f"CRITICAL: Configured PAYSLIP_FOLDER '{PAYSLIP_STORAGE_PATH}' does not exist or is not a directory.")
     exit(1) # Exit if configured path is invalid
@@ -52,7 +51,7 @@ try:
     try:
         db_name_part = mongo_uri.split('/')[-1]
         db_name = db_name_part.split('?')[0]
-        if not db_name or db_name == 'admin': # Avoid using 'admin' db directly
+        if not db_name or db_name == 'admin': # Avoid using 'admin' db directly if URI is like mongodb://host/
              raise IndexError("Invalid or missing database name in URI")
     except IndexError:
         db_name = 'hrms_db' # Default database name
@@ -97,11 +96,6 @@ def login_required(f):
             flash("Please log in to access this page.", "warning")
             session['next_url'] = request.url
             return redirect(url_for('login'))
-        # Optional: Check if user still exists in DB? (more robust session check)
-        # user = get_current_user()
-        # if not user:
-        #    flash("Session expired or invalid. Please log in again.", "warning")
-        #    return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -125,18 +119,18 @@ def get_current_user():
     user_id_str = session.get('user_id')
     if not user_id_str: return None
     try:
-        # Ensure ID is valid before querying
-        user_object_id = ObjectId(user_id_str)
+        user_object_id = ObjectId(user_id_str) # Ensure ID is valid before querying
         user = users_collection.find_one({'_id': user_object_id})
         if not user:
             print(f"Auth Warning: User ID {user_id_str} in session not found. Clearing session.")
-            session.clear()
-            return None
+            session.clear(); return None
         return user
-    except Exception as e: # Catches InvalidId (from ObjectId) or DB errors
+    except InvalidId: # Catch if the session ID is not a valid ObjectId format
+        print(f"Auth Error: Invalid ObjectId format in session user_id: {user_id_str}. Clearing session.")
+        session.clear(); return None
+    except Exception as e:
         print(f"Error fetching user for session ID {user_id_str}: {e}")
-        session.clear()
-        return None
+        session.clear(); return None
 
 def get_today_attendance_status(user_id):
     """ Checks current day's clock-in/out status for a given user_id (ObjectId). """
@@ -150,122 +144,74 @@ def get_today_attendance_status(user_id):
     status = default_status.copy() # Start with default
 
     try:
-        record = attendance_collection.find_one(
-            {'user_id': user_id, 'clock_in': {'$gte': today_start, '$lt': today_end}},
-            sort=[('clock_in', -1)] ) # Get latest record for today
-        if record:
-            status.update({
-                "clocked_in": True,
-                "clock_in_time": record.get('clock_in'),
-                "record_id": record.get('_id'),
-                "clocked_out": bool(record.get('clock_out')), # Check if clock_out exists and is not None
-                "clock_out_time": record.get('clock_out')
-            })
-    except Exception as e:
-        print(f"Error fetching attendance status for user {user_id}: {e}")
-        # Return default status on error
+        record = attendance_collection.find_one({'user_id': user_id, 'clock_in': {'$gte': today_start, '$lt': today_end}}, sort=[('clock_in', -1)])
+        if record: status.update({"clocked_in":True,"clock_in_time":record.get('clock_in'), "record_id":record.get('_id'), "clocked_out":bool(record.get('clock_out')), "clock_out_time":record.get('clock_out')})
+    except Exception as e: print(f"Err fetch att status {user_id}: {e}")
     return status
 
-
-# --- Context Processors (Variables available to all templates) ---
+# --- Context Processors ---
 @app.context_processor
 def inject_global_vars():
     """ Injects common variables into all templates' contexts. """
     is_admin = False
-    if 'user_id' in session: # Only check admin status if user is potentially logged in
-        is_admin = session.get('is_admin', False)
-    # Pass debug status for conditional rendering in templates
+    if 'user_id' in session: is_admin = session.get('is_admin', False)
     debug_status = app.config.get('DEBUG', False)
-    return {
-        'now': datetime.now(),
-        'is_admin': is_admin,
-        'debug_status': debug_status
-    }
+    return {'now': datetime.now(), 'is_admin': is_admin, 'debug_status': debug_status}
 
 # --- Routes ---
 
-@app.route('/setup_user') # Development only route - REMOVE or PROTECT in production
+@app.route('/setup_user') # Development only route
 def setup_user():
     """ Creates/updates a default admin user AND a standard user with sample data. """
-    admin_username = "adminuser"; admin_password = "password123" # CHANGE THIS IN PRODUCTION
-    user_username = "testuser"; user_password = "password123" # CHANGE THIS
+    admin_username = "adminuser"; admin_password = "password123"
+    user_username = "testuser"; user_password = "password123"
     messages = []
     try:
         # Admin User Setup
         existing_admin = users_collection.find_one({'username': admin_username})
         if not existing_admin:
-            hashed_pw = generate_password_hash(admin_password)
-            user_data={'username':admin_username,'password':hashed_pw,'full_name':'Administrator','employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}
-            users_collection.insert_one(user_data)
-            msg = f"Admin '{admin_username}' created."
-        else:
-            msg = f"Admin '{admin_username}' exists."
-            if not existing_admin.get('is_admin'): users_collection.update_one({'_id': existing_admin['_id']}, {'$set': {'is_admin': True}}); msg += " (Promoted to Admin)"
+            hashed_pw = generate_password_hash(admin_password); user_data={'username':admin_username,'password':hashed_pw,'full_name':'Administrator','employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}; users_collection.insert_one(user_data); msg = f"Admin '{admin_username}' created."
+        else: msg = f"Admin '{admin_username}' exists.";
+        if existing_admin and not existing_admin.get('is_admin'): users_collection.update_one({'_id': existing_admin['_id']}, {'$set': {'is_admin': True}}); msg += " (Promoted to Admin)"
         messages.append(msg)
-
         # Standard User Setup
         existing_user = users_collection.find_one({'username': user_username})
         if not existing_user:
-             hashed_pw = generate_password_hash(user_password)
-             user_data={'username':user_username,'password':hashed_pw,'full_name':'Test User', 'employee_id':'EMP001','is_admin':False,'created_at':datetime.utcnow(), 'job_title':'Software Engineer', 'department':'Technology', 'location':'Remote', 'email':'test@example.com', 'mobile':'123-456-7890'}
-             users_collection.insert_one(user_data)
-             msg = f"Standard user '{user_username}' created."
+             hashed_pw = generate_password_hash(user_password); user_data={'username':user_username,'password':hashed_pw,'full_name':'Test User', 'employee_id':'EMP001','is_admin':False,'created_at':datetime.utcnow(), 'job_title':'Software Engineer', 'department':'Technology', 'location':'Remote', 'email':'test@example.com', 'mobile':'123-456-7890'}; users_collection.insert_one(user_data); msg = f"Standard user '{user_username}' created."
         else: msg = f"Standard user '{user_username}' exists."
         messages.append(msg)
-
-        final_message = " | ".join(messages)
-        print(f"SETUP: {final_message}")
-        return final_message
-    except Exception as e:
-        print(f"Error during /setup_user: {e}")
-        return f"Error during setup: {e}", 500
+        final_message = " | ".join(messages); print(f"SETUP: {final_message}"); return final_message
+    except Exception as e: print(f"Err setup_user: {e}"); return f"Error: {e}", 500
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """ Handles user login and session creation. """
     if 'user_id' in session: return redirect(url_for('admin_dashboard' if session.get('is_admin') else 'dashboard'))
-
     if request.method == 'POST':
-        username = request.form.get('username','').strip()
-        password = request.form.get('password','')
-        if not username or not password:
-            flash("Username and password required.", "warning")
-            return render_template('login.html'), 400
+        username=request.form.get('username','').strip(); password=request.form.get('password','')
+        if not username or not password: flash("Username/password required.", "warning"); return render_template('login.html'), 400
         try:
             user = users_collection.find_one({'username': username})
             if user and check_password_hash(user['password'], password):
-                session.permanent = True # Use timeout from app.config
-                session['user_id'] = str(user['_id'])
-                session['username'] = user['username']
-                session['is_admin'] = user.get('is_admin', False) # Store admin status
+                session.permanent = True; session['user_id']=str(user['_id']); session['username']=user['username']; session['is_admin']=user.get('is_admin',False)
                 flash(f"Welcome, {user.get('full_name', user['username'])}!", "success")
-                next_url = session.pop('next_url', None) # Redirect to previous page if stored
-                return redirect(next_url or url_for('admin_dashboard' if session['is_admin'] else 'dashboard'))
-            else: flash("Invalid username or password.", "danger") # Invalid credentials
-        except Exception as e:
-             print(f"Error during login attempt for user '{username}': {e}")
-             flash("An error occurred during login. Please try again later.", "danger")
-        return render_template('login.html'), 401 # Show login again on failure
-
-    # GET request
+                next_url = session.pop('next_url', None); return redirect(next_url or url_for('admin_dashboard' if session['is_admin'] else 'dashboard'))
+            else: flash("Invalid credentials.", "danger")
+        except Exception as e: print(f"Err login '{username}': {e}"); flash("Login error.", "danger")
+        return render_template('login.html'), 401
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
-def logout():
-    """ Clears session and redirects to login. """
-    user_name = session.get('username', 'User'); session.clear()
-    flash(f"{user_name} logged out successfully.", "info"); return redirect(url_for('login'))
-
+def logout(): user_name = session.get('username', 'User'); session.clear(); flash(f"{user_name} logged out.", "info"); return redirect(url_for('login'))
 
 # --- Standard User Routes ---
 @app.route('/')
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """ Standard user dashboard. """
-    if session.get('is_admin'): return redirect(url_for('admin_dashboard')) # Redirect admins
+    if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: flash("Session invalid.", "warning"); return redirect(url_for('login'))
     attendance_status = get_today_attendance_status(user['_id'])
@@ -276,41 +222,40 @@ def dashboard():
 def clock_in():
     user=get_current_user();
     if not user: return redirect(url_for('login'))
-    if user.get('is_admin'): flash("Action not available for admins.", "warning"); return redirect(url_for('admin_dashboard'))
+    if user.get('is_admin'): flash("Action NA for admins.", "warning"); return redirect(url_for('admin_dashboard'))
     user_id=user['_id']; attendance_status=get_today_attendance_status(user_id)
     if attendance_status["clocked_in"] and not attendance_status["clocked_out"]: flash("Already clocked in.", "warning")
-    elif attendance_status["clocked_in"] and attendance_status["clocked_out"]: flash("Attendance complete for today.", "info")
+    elif attendance_status["clocked_in"] and attendance_status["clocked_out"]: flash("Attendance complete.", "info")
     else:
         try: attendance_collection.insert_one({'user_id':user_id,'username':user['username'],'clock_in':datetime.now(),'clock_out':None,'date':date.today().strftime('%Y-%m-%d')}); flash("Clocked in!", "success")
         except Exception as e: print(f"Err clock-in {user_id}: {e}"); flash("Clock-in error.", "danger")
-    return redirect(request.referrer or url_for('dashboard')) # Redirect back to previous page or dashboard
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/clock_out', methods=['POST'])
 @login_required
 def clock_out():
     user = get_current_user();
     if not user: return redirect(url_for('login'))
-    if user.get('is_admin'): flash("Action not available for admins.", "warning"); return redirect(url_for('admin_dashboard'))
+    if user.get('is_admin'): flash("Action NA for admins.", "warning"); return redirect(url_for('admin_dashboard'))
     user_id=user['_id']; attendance_status=get_today_attendance_status(user_id)
     if not attendance_status["clocked_in"]: flash("Clock in first.", "warning")
     elif attendance_status["clocked_out"]: flash("Already clocked out.", "warning")
     elif attendance_status["record_id"]:
         try: result=attendance_collection.update_one({'_id':attendance_status["record_id"],'clock_out':None},{'$set':{'clock_out':datetime.now()}}); flash("Clocked out!" if result.modified_count>0 else "Already clocked out?", "success" if result.modified_count>0 else "warning")
         except Exception as e: print(f"Err clock-out {user_id} rec {attendance_status['record_id']}: {e}"); flash("Clock-out error.", "danger")
-    else: flash("Cannot find clock-in record to clock out.", "danger")
-    return redirect(request.referrer or url_for('dashboard')) # Redirect back
+    else: flash("Cannot find clock-in record.", "danger")
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/attendance')
 @login_required
 def view_attendance():
-    """ Displays detailed attendance page for the logged-in user. """
     if session.get('is_admin'): flash("Admin attendance view TBD.", "info"); return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
     user_attendance = []; attendance_status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
     try:
         user_attendance = list(attendance_collection.find({'user_id':user['_id']}).sort('clock_in',-1))
-        attendance_status = get_today_attendance_status(user['_id']) # Needed for Actions widget on this page
+        attendance_status = get_today_attendance_status(user['_id'])
     except Exception as e: print(f"Err fetch user att data {user['_id']}: {e}"); flash("Error fetching attendance data.", "danger")
     return render_template('attendance.html', user=user, attendance_records=user_attendance, attendance_status=attendance_status)
 
@@ -359,32 +304,33 @@ def view_payslips():
 @login_required
 def download_payslip(payslip_id):
     """ Securely sends a payslip file for download if user owns it. """
-    if not PAYSLIP_STORAGE_PATH: # Check if storage path is configured
-         flash("Payslip download is currently unavailable. Please contact support.", "danger")
-         print("Error: Download attempted but PAYSLIP_FOLDER is not configured.")
+    if not PAYSLIP_STORAGE_PATH:
+         flash("Payslip download unavailable.", "danger"); print("Error: Download attempted but PAYSLIP_FOLDER not configured.")
          return redirect(url_for('view_payslips'))
 
     user = get_current_user();
     if not user: abort(401)
-    safe_filename = None # Initialize for error logging
+    safe_filename = None
 
     try:
-        payslip_object_id = ObjectId(payslip_id)
+        payslip_object_id = ObjectId(payslip_id) # <<< Can raise InvalidId
         payslip_doc = payslips_collection.find_one({'_id': payslip_object_id})
         if not payslip_doc: abort(404)
-        # SECURITY CHECK: Ensure the logged-in user owns this payslip
+        # SECURITY CHECK
         if payslip_doc.get('user_id') != user['_id']: abort(403)
 
         db_filename = payslip_doc.get('file_name')
         if not db_filename: flash("Payslip record has no file.", "warning"); return redirect(url_for('view_payslips'))
 
         safe_filename = secure_filename(db_filename)
-        if safe_filename != db_filename: abort(400, "Invalid filename.") # Potential manipulation
+        if safe_filename != db_filename: abort(400, "Invalid filename.")
 
         print(f"Download request: User {user['_id']}, Payslip {payslip_id}, File '{safe_filename}'")
         return send_from_directory(directory=PAYSLIP_STORAGE_PATH, path=safe_filename, as_attachment=True)
 
-    except InvalidId: abort(404) # Bad payslip_id format
+    except InvalidId: # <<<--- Catch the specific imported error ---<<<
+         print(f"Download Attempt: Invalid Payslip ID format: {payslip_id}")
+         abort(404) # Treat as Not Found
     except FileNotFoundError:
         print(f"Download Error: File not found: {os.path.join(PAYSLIP_STORAGE_PATH, safe_filename if safe_filename else payslip_id)}")
         flash(f"Payslip file not found. Contact support.", "danger"); return redirect(url_for('view_payslips'))
@@ -407,12 +353,11 @@ def my_team():
         team_stats["off_today_list"] = users_off_today; off_today_ids = {u['_id'] for u in users_off_today}
         today_start=datetime.combine(current_date,datetime.min.time()); today_end=datetime.combine(current_date,datetime.max.time())
         clocked_in_ids = set(attendance_collection.distinct('user_id', {'clock_in': {'$gte':today_start, '$lt':today_end}}))
-        # TODO: Define "team" more accurately later (e.g., based on manager field)
         all_team_users = list(users_collection.find({"_id":{"$ne": current_user_id},"is_admin":{"$ne":True}},{"_id":1,"username":1}))
         not_in_yet_list = [team_user['username'] for team_user in all_team_users if team_user['_id'] not in clocked_in_ids and team_user['_id'] not in off_today_ids]
         team_stats["not_in_yet_list"] = not_in_yet_list
         calendar_data["weeks"] = calendar.monthcalendar(calendar_data["year"], calendar_data["month"])
-        team_stats['on_time_count'] = len(clocked_in_ids) # Placeholder stat
+        team_stats['on_time_count'] = len(clocked_in_ids)
     except Exception as e: print(f"Err My Team {user['_id']}: {e}"); flash("Could not load team data.", "warning")
     return render_template('my_team.html', user=user, team_stats=team_stats, calendar_data=calendar_data)
 
@@ -484,7 +429,7 @@ def admin_add_user():
             else: flash("DB issue adding employee.", 'danger')
         except Exception as e: print(f"Err adding user '{username}': {e}"); flash(f"Error: {e}", 'danger')
         return render_template('admin/add_user.html', user=user, form_data=form_data), 500
-    return render_template('admin/add_user.html', user=user, form_data={}) # GET
+    return render_template('admin/add_user.html', user=user, form_data={})
 
 @app.route('/admin/leaves')
 @admin_required
@@ -546,4 +491,4 @@ if __name__ == '__main__':
     print(f" * Database: mongodb://.../{db.name}")
     print(f" * Listening on http://0.0.0.0:{port}")
     print("--- Press CTRL+C to quit ---")
-    app.run(host='0.0.0.0', port=port, threaded=is_debug) # Use default Flask debug setting
+    app.run(host='0.0.0.0', port=port, threaded=is_debug)
