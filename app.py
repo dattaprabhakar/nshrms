@@ -245,6 +245,12 @@ def view_payslips():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
+    """ Admin dashboard displaying key statistics. """
+    user = get_current_user() # <<< GET THE CURRENT (ADMIN) USER
+    if not user: # Should not happen due to decorator, but defensive check
+        flash("Admin session invalid. Please log in again.", "warning")
+        return redirect(url_for('login'))
+
     stats = {'user_count':'N/A', 'pending_leaves_count':'N/A', 'attendance_today':'N/A'}
     try:
         stats['user_count'] = users_collection.count_documents({})
@@ -252,18 +258,24 @@ def admin_dashboard():
         today_start=datetime.combine(date.today(),datetime.min.time()); today_end=datetime.combine(date.today(),datetime.max.time())
         stats['attendance_today'] = len(attendance_collection.distinct('user_id', {'clock_in':{'$gte':today_start,'$lt':today_end}}))
     except Exception as e: print(f"Err admin dashboard stats: {e}"); flash("Could not load stats.", "warning")
-    return render_template('admin/dashboard.html', **stats)
+
+    # <<< PASS THE 'user' OBJECT TO THE TEMPLATE >>>
+    return render_template('admin/dashboard.html', user=user, **stats)
 
 @app.route('/admin/users')
 @admin_required
 def admin_manage_users():
+    user = get_current_user() # Pass user to base template
+    if not user: return redirect(url_for('login'))
     try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1))
     except Exception as e: print(f"Err admin fetch users: {e}"); flash("Could not load users.", "danger"); all_users=[]
-    return render_template('admin/users.html', users=all_users)
+    return render_template('admin/users.html', user=user, users=all_users)
 
 @app.route('/admin/leaves')
 @admin_required
 def admin_manage_leaves():
+    user = get_current_user() # Pass user to base template
+    if not user: return redirect(url_for('login'))
     try:
         filter_status = request.args.get('status','All')
         query={}; allowed_statuses=['Pending','Approved','Rejected']
@@ -272,7 +284,7 @@ def admin_manage_leaves():
             else: flash(f"Invalid filter: {filter_status}", "warning"); filter_status='All'
         all_leaves = list(leaves_collection.find(query).sort([('status',1),('applied_date',-1)]))
     except Exception as e: print(f"Err admin fetch leaves (filter: {filter_status}): {e}"); flash("Could not load leaves.", "danger"); all_leaves=[]
-    return render_template('admin/leaves.html', leaves=all_leaves, current_filter=filter_status)
+    return render_template('admin/leaves.html', user=user, leaves=all_leaves, current_filter=filter_status)
 
 @app.route('/admin/leaves/action/<leave_id>/<action>', methods=['POST'])
 @admin_required
@@ -300,24 +312,26 @@ def admin_action_leave(leave_id, action):
 @admin_required
 def admin_settings():
     """ Placeholder page for Admin Settings. """
-    return render_template('admin/settings.html')
+    user = get_current_user() # Pass user to base template
+    if not user: return redirect(url_for('login'))
+    return render_template('admin/settings.html', user=user)
 
 # --- Error Handling ---
 @app.errorhandler(404)
-def page_not_found(e): return render_template('errors/404.html'), 404
+def page_not_found(e): user = get_current_user(); return render_template('errors/404.html', user=user), 404 # Pass user if available
 @app.errorhandler(500)
-def internal_server_error(e): print(f"Internal Server Error: {e}"); return render_template('errors/500.html'), 500
+def internal_server_error(e): user = get_current_user(); print(f"Internal Server Error: {e}"); return render_template('errors/500.html', user=user), 500
 @app.errorhandler(403)
-def forbidden(e): return render_template('errors/403.html'), 403
+def forbidden(e): user = get_current_user(); return render_template('errors/403.html', user=user), 403
 
 # --- Main Execution ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))
-    is_debug = app.config['DEBUG'] # Use debug status from app config
+    is_debug = app.config['DEBUG']
     print(f"--- HRMS Portal ({'Development' if is_debug else 'Production'}) ---")
     if is_debug: print("WARNING: Debug mode is ON.")
     print(f" * Environment: {os.environ.get('FLASK_ENV', 'production')}")
     print(f" * Database: mongodb://.../{db.name}") # Mask URI in logs
     print(f" * Listening on http://0.0.0.0:{port}")
     print("--- Press CTRL+C to quit ---")
-    app.run(host='0.0.0.0', port=port, threaded=is_debug) # threaded=True only for dev
+    app.run(host='0.0.0.0', port=port, threaded=is_debug)
