@@ -1,59 +1,282 @@
 {% extends "base.html" %}
-{% block title %}Attendance History{% endblock %}
+{% block title %}My Attendance{% endblock %}
 
 {% block content %}
+{# Keka-like top navigation within content area (Placeholder Links) #}
+<nav class="nav nav-underline nav-fill mb-4 border-bottom pb-2">
+    <a class="nav-link active fw-bold" aria-current="page" href="{{ url_for('view_attendance') }}">ATTENDANCE</a>
+    <a class="nav-link text-muted" href="{{ url_for('view_leaves') }}">LEAVE</a>
+    <a class="nav-link text-muted disabled" href="#">PERFORMANCE</a>
+    <a class="nav-link text-muted disabled" href="#">EXPENSES & TRAVEL</a>
+    <a class="nav-link text-muted disabled" href="#">APPS</a>
+</nav>
+
+{# Top Row: Stats, Timings, Actions #}
+<div class="row mb-4">
+
+    <!-- Attendance Stats Column (Placeholders) -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center bg-transparent border-bottom py-2">
+                 <h6 class="mb-0 fw-normal text-muted small">Attendance Stats</h6>
+                 {# Placeholder dropdown #}
+                 <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem;">
+                        Last Week
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item active" href="#">Last Week</a></li>
+                        <li><a class="dropdown-item" href="#">This Month</a></li>
+                        <li><a class="dropdown-item" href="#">Last Month</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                    <div class="d-flex align-items-center">
+                        <span class="badge bg-warning-subtle text-warning-emphasis rounded-circle p-2 me-3"><i class="bi bi-person fs-5"></i></span>
+                        <span>Me</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="fw-bold d-block">9h 56m</span>
+                        <small class="text-muted">AVG HRS / DAY</small>
+                    </div>
+                     <div class="text-end">
+                        <span class="fw-bold d-block">100%</span>
+                        <small class="text-muted">ON TIME ARRIVAL</small>
+                    </div>
+                </div>
+                 <div class="d-flex justify-content-between align-items-center">
+                     <div class="d-flex align-items-center">
+                        <span class="badge bg-primary-subtle text-primary-emphasis rounded-circle p-2 me-3"><i class="bi bi-people fs-5"></i></span>
+                        <span>My Team</span>
+                    </div>
+                     <div class="text-end">
+                        <span class="fw-bold d-block">10h</span>
+                        <small class="text-muted">AVG HRS / DAY</small>
+                    </div>
+                     <div class="text-end">
+                        <span class="fw-bold d-block">50%</span>
+                        <small class="text-muted">ON TIME ARRIVAL</small>
+                    </div>
+                </div>
+                <div class="alert alert-warning small mt-3 p-2">Note: Stats are placeholder data.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timings Column (Placeholders) -->
+     <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-transparent border-bottom py-2">
+                <h6 class="mb-0 fw-normal text-muted small">Timings</h6>
+            </div>
+            <div class="card-body">
+                 {# Weekly buttons - Placeholder styling #}
+                <div class="d-flex justify-content-around mb-3">
+                    {% for day in ['M', 'T', 'W', 'T', 'F', 'S', 'S'] %}
+                     <button type="button" class="btn btn-sm {{ 'btn-primary' if loop.last else 'btn-outline-secondary' }} rounded-circle" style="width: 30px; height: 30px; padding: 0; line-height: 30px;">{{ day }}</button>
+                    {% endfor %}
+                </div>
+                 {# Shift Timings & Progress - Placeholder #}
+                 <p class="text-center small text-muted mb-1">Today (9:30 AM - 6:30 PM)</p>
+                 <div class="progress mb-1" role="progressbar" aria-label="Attendance progress" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100" style="height: 10px;">
+                    <div class="progress-bar" style="width: 75%"></div> {# Example progress #}
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Duration: 9h 0m</small>
+                    <small class="text-muted"><i class="bi bi-cup-hot me-1"></i> 60 min</small> {# Placeholder break #}
+                </div>
+                <div class="alert alert-info small mt-3 p-2">Note: Timings widget shows placeholder data.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Column (Uses live data) -->
+     <div class="col-lg-4 col-md-12 mb-4"> {# Takes full width on medium down if others wrap #}
+        <div class="card h-100">
+             <div class="card-header bg-transparent border-bottom py-2">
+                 <h6 class="mb-0 fw-normal text-muted small">Actions</h6>
+             </div>
+            <div class="card-body text-center">
+                {# Live Clock #}
+                <h3 class="display-6" id="live-clock-display">{{ now.strftime('%-I:%M:%S') }} <small style="font-size: 1rem;">{{ now.strftime('%p') }}</small></h3>
+                <p class="text-muted small mb-4">{{ now.strftime('%a, %d %B %Y') }}</p>
+
+                 {# Clock In/Out Buttons #}
+                 <div class="attendance-actions mb-4">
+                    {% if not attendance_status.clocked_in %}
+                        <div class="btn-group shadow-sm" role="group" aria-label="Clock In Actions">
+                            <form action="{{ url_for('clock_in') }}" method="POST" style="display: contents;">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-box-arrow-in-right me-1"></i> Web Clock-In</button>
+                            </form>
+                             {# Other actions dropdown #}
+                             <div class="btn-group" role="group">
+                                <button id="clockInOtherOptions" type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="clockInOtherOptions">
+                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-house-gear me-2"></i> Request Work From Home</a></li>
+                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-briefcase me-2"></i> Request On Duty</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    {% elif not attendance_status.clocked_out %}
+                         <div class="btn-group shadow-sm" role="group" aria-label="Clock Out Actions">
+                            <form action="{{ url_for('clock_out') }}" method="POST" style="display: contents;">
+                                <button type="submit" class="btn btn-warning"><i class="bi bi-box-arrow-left me-1"></i> Web Clock-Out</button>
+                            </form>
+                            {# Other actions dropdown #}
+                             <div class="btn-group" role="group">
+                                <button id="clockOutOtherOptions" type="button" class="btn btn-outline-warning dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="clockOutOtherOptions">
+                                     <li><a class="dropdown-item disabled" href="#"><i class="bi bi-cup-hot me-2"></i> Add Break</a></li>
+                                     <li><a class="dropdown-item disabled" href="#"><i class="bi bi-calendar2-x me-2"></i> Regularize</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                         <p class="text-muted small mt-2">In: {{ attendance_status.clock_in_time.strftime('%H:%M') }}</p>
+                    {% else %}
+                         <p class="text-success"><i class="bi bi-check-circle-fill me-1"></i> Attendance complete.</p>
+                         <p class="text-muted small">In: {{ attendance_status.clock_in_time.strftime('%H:%M') }} | Out: {{ attendance_status.clock_out_time.strftime('%H:%M') }}</p>
+                    {% endif %}
+                </div>
+
+                {# Other Action Links (Placeholders) #}
+                <div class="list-group list-group-flush text-start small">
+                    <a href="#" class="list-group-item list-group-item-action disabled"><i class="bi bi-house-gear me-2 text-primary"></i> Work From Home</a>
+                    <a href="#" class="list-group-item list-group-item-action disabled"><i class="bi bi-briefcase me-2 text-success"></i> On Duty</a>
+                     <a href="#" class="list-group-item list-group-item-action disabled"><i class="bi bi-file-earmark-text me-2 text-info"></i> Attendance Policy</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{# Logs & Requests Section #}
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-calendar-check me-2"></i> Your Attendance History</span>
-        {# Add filtering options later if needed #}
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+         <ul class="nav nav-tabs card-header-tabs" id="logsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="log-tab" data-bs-toggle="tab" data-bs-target="#log-tab-pane" type="button" role="tab" aria-controls="log-tab-pane" aria-selected="true">Attendance Log</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link disabled" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar-tab-pane" type="button" role="tab" aria-controls="calendar-tab-pane" aria-selected="false">Calendar</button>
+            </li>
+             <li class="nav-item" role="presentation">
+                <button class="nav-link disabled" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests-tab-pane" type="button" role="tab" aria-controls="requests-tab-pane" aria-selected="false">Attendance Requests</button>
+            </li>
+        </ul>
+        {# 24 Hour Format Toggle (Visual Only) #}
+         <div class="form-check form-switch ms-auto mt-2 mt-md-0">
+            <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" disabled>
+            <label class="form-check-label small text-muted" for="flexSwitchCheckDefault">24 hour format</label>
+        </div>
     </div>
     <div class="card-body">
-        {% if attendance_records %}
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-bordered caption-top table-sm"> {# Added table-sm #}
-                     <caption>List of your recorded clock-ins and clock-outs.</caption>
-                    <thead class="table-light">
-                        <tr>
-                            <th>Date</th>
-                            <th>Clock In</th>
-                            <th>Clock Out</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in attendance_records %}
+        <div class="tab-content" id="logsTabsContent">
+            <!-- Attendance Log Pane -->
+            <div class="tab-pane fade show active" id="log-tab-pane" role="tabpanel" aria-labelledby="log-tab" tabindex="0">
+                 {# Date Filter Buttons (Visual Only) #}
+                 <div class="d-flex justify-content-end mb-3">
+                     <div class="btn-group btn-group-sm" role="group">
+                         <button type="button" class="btn btn-primary">30 DAYS</button>
+                         <button type="button" class="btn btn-outline-secondary">APR</button>
+                         <button type="button" class="btn btn-outline-secondary">MAR</button>
+                         <button type="button" class="btn btn-outline-secondary">FEB</button>
+                         <button type="button" class="btn btn-outline-secondary">JAN</button>
+                         <button type="button" class="btn btn-outline-secondary">DEC</button>
+                         <button type="button" class="btn btn-outline-secondary">NOV</button>
+                     </div>
+                 </div>
+
+                 {# Attendance Log Table #}
+                 <div class="table-responsive">
+                    <table class="table table-sm table-hover attendance-log-table" style="font-size: 0.85rem;">
+                         <thead class="table-light">
                             <tr>
-                                <td>{{ record.clock_in.strftime('%Y-%m-%d') if record.clock_in else 'N/A' }}</td>
-                                <td>{{ record.clock_in.strftime('%H:%M:%S') if record.clock_in else 'N/A' }}</td>
-                                <td>
-                                    {% if record.clock_out %}
-                                        {{ record.clock_out.strftime('%H:%M:%S') }}
-                                    {% else %}
-                                        <span class="badge bg-info text-dark">Pending</span>
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if record.clock_in and record.clock_out %}
-                                        {# Calculate duration (basic example) #}
-                                        {% set duration = record.clock_out - record.clock_in %}
-                                        {% set hours = duration.seconds // 3600 %}
-                                        {% set minutes = (duration.seconds % 3600) // 60 %}
-                                        {{ '%dh %02dm'|format(hours, minutes) }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
+                                <th>DATE</th>
+                                <th>ATTENDANCE VISUAL</th> {# Placeholder #}
+                                <th>EFFECTIVE HOURS</th> {# Placeholder #}
+                                <th>GROSS HOURS</th>
+                                <th>ARRIVAL</th> {# Placeholder #}
+                                <th>LOG</th> {# Placeholder #}
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% if attendance_records %}
+                                {% for record in attendance_records %}
+                                    <tr>
+                                        <td class="text-nowrap">
+                                            {{ record.clock_in.strftime('%b %d, %a') if record.clock_in else 'N/A' }}
+                                            {# Placeholder for W-OFF tag - needs holiday/weekend logic #}
+                                            {% if record.clock_in.weekday() >= 5 %} {# Basic weekend check #}
+                                               <span class="badge bg-light text-dark border ms-1 small">W-OFF</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{# Placeholder for Visual Bar #} <div class="progress" style="height: 5px;"><div class="progress-bar" role="progressbar" style="width: 90%;" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div></div> </td>
+                                        <td>{# Placeholder for Effective Hours #} 8h 30m</td>
+                                        <td class="text-nowrap">
+                                            {% if record.clock_in and record.clock_out %}
+                                                {% set duration = record.clock_out - record.clock_in %}
+                                                {% set hours = duration.seconds // 3600 %}
+                                                {% set minutes = (duration.seconds % 3600) // 60 %}
+                                                {{ '%dh %02dm'|format(hours, minutes) }}
+                                            {% elif record.clock_in %}
+                                                In: {{ record.clock_in.strftime('%H:%M') }}
+                                            {% else %}
+                                                --
+                                            {% endif %}
+                                        </td>
+                                         <td>{# Placeholder for Arrival #} <span class="text-success">09:25 AM</span></td>
+                                        <td>{# Placeholder for Log Actions #} <i class="bi bi-three-dots text-muted"></i></td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted p-4">No attendance records found.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                 </div>
             </div>
-            {# Add pagination here later if needed #}
-        {% else %}
-            <div class="alert alert-info" role="alert">
-                No attendance records found.
+            <!-- Calendar Pane (Placeholder) -->
+            <div class="tab-pane fade" id="calendar-tab-pane" role="tabpanel" aria-labelledby="calendar-tab" tabindex="0">
+                 <p class="text-muted p-4 text-center">Attendance calendar view will be implemented here.</p>
             </div>
-        {% endif %}
+             <!-- Requests Pane (Placeholder) -->
+            <div class="tab-pane fade" id="requests-tab-pane" role="tabpanel" aria-labelledby="requests-tab" tabindex="0">
+                  <p class="text-muted p-4 text-center">Attendance regularization requests will be shown here.</p>
+            </div>
+        </div>
     </div>
 </div>
+
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    // Live Clock Update Script for Actions Widget
+    function updateLiveClock() {
+        const clockDisplay = document.getElementById('live-clock-display');
+        if (clockDisplay) {
+            const now = new Date();
+            // Format: H:MM:SS AM/PM
+             const timeString = now.toLocaleTimeString(navigator.language, {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+             });
+             // Separate time and AM/PM for styling if needed
+             const parts = timeString.split(' ');
+             clockDisplay.innerHTML = `${parts[0]} <small style="font-size: 1rem;">${parts[1]}</small>`;
+        }
+    }
+    updateLiveClock();
+    const liveClockInterval = setInterval(updateLiveClock, 1000);
+</script>
 {% endblock %}
