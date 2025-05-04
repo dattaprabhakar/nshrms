@@ -10,46 +10,62 @@
     <style>
         :root {
             --sidebar-width: 260px;
-            --sidebar-bg: #1e293b;
-            --sidebar-link-color: #cbd5e1;
-            --sidebar-link-hover-bg: #334155;
-            --sidebar-link-active-bg: #0ea5e9;
+            --sidebar-bg: #1e293b; /* Dark slate */
+            --sidebar-link-color: #cbd5e1; /* Slate 300 */
+            --sidebar-link-hover-bg: #334155; /* Slate 700 */
+            --sidebar-link-active-bg: #0ea5e9; /* Sky 500 */
             --sidebar-link-active-color: #ffffff;
-            --dropdown-bg: #293548;
-            --dropdown-item-hover-bg: #3e4f66;
+            --dropdown-bg: #293548; /* Darker slate for dropdown */
+            --dropdown-item-hover-bg: #3e4f66; /* Even darker */
+            --main-bg: #f1f5f9; /* Slate 100 */
+            --card-border-color: #e2e8f0; /* Slate 200 */
+            --text-muted-color: #64748b; /* Slate 500 */
         }
 
-        body { background-color: #f1f5f9; display: flex; }
-        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 1rem; overflow-y: auto; transition: width 0.3s ease; z-index: 1030; }
-        #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; }
+        body { background-color: var(--main-bg); display: flex; }
+        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 1rem; overflow-y: auto; transition: width 0.3s ease; z-index: 1030; display: flex; flex-direction: column; } /* Flex column */
+        #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; border-left: 3px solid transparent; /* For active indicator */ transition: background-color 0.2s ease, border-left-color 0.2s ease; }
         #sidebar .nav-link i { margin-right: 0.8rem; font-size: 1.2rem; width: 25px; text-align: center; }
-        #sidebar .nav-link:hover { background-color: var(--sidebar-link-hover-bg); color: #ffffff; }
-        #sidebar .nav-link.active { background-color: var(--sidebar-link-active-bg); color: var(--sidebar-link-active-color); font-weight: 500; }
+        #sidebar .nav-link:hover { background-color: var(--sidebar-link-hover-bg); color: #ffffff; border-left-color: var(--sidebar-link-hover-bg); }
+        #sidebar .nav-link.active { background-color: var(--sidebar-link-hover-bg); /* Same bg for active parent */ color: var(--sidebar-link-active-color); font-weight: 500; border-left-color: var(--sidebar-link-active-bg); /* Active indicator */ }
         #sidebar .sidebar-heading { padding: 0.5rem 1.5rem; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-top: 1rem; }
-        #sidebar .logo-area { padding: 0.5rem 1.5rem 1.5rem 1.5rem; color: #ffffff; font-size: 1.5rem; font-weight: bold; text-align: center; border-bottom: 1px solid #334155; margin-bottom: 1rem; }
+        #sidebar .logo-area { padding: 0.5rem 1.5rem 1.5rem 1.5rem; color: #ffffff; font-size: 1.5rem; font-weight: bold; text-align: center; border-bottom: 1px solid #334155; margin-bottom: 1rem; flex-shrink: 0; }
         #sidebar .logo-area i { margin-right: 0.5rem; }
+        #sidebar .sidebar-menu { flex-grow: 1; overflow-y: auto; /* Scroll only the menu part */ }
+        #sidebar .sidebar-footer { flex-shrink: 0; padding: 1rem 0; text-align: center; border-top: 1px solid #334155; }
+        #sidebar .sidebar-footer small { color: var(--sidebar-link-color); opacity: 0.6; font-size: 0.75rem;}
+
 
         /* Dropdown Styling */
         #sidebar .dropdown-toggle::after { display: none; }
-        #sidebar .dropdown-menu { background-color: var(--dropdown-bg); border-radius: 0.375rem; border: 1px solid var(--sidebar-link-hover-bg); padding: 0.5rem 0; margin-top: 0.25rem !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); min-width: 200px; }
-        #sidebar .dropdown-item { color: var(--sidebar-link-color); padding: 0.6rem 1.5rem; font-size: 0.9rem; display: flex; align-items: center; }
-        #sidebar .dropdown-item i { margin-right: 0.8rem; font-size: 1rem; opacity: 0.8; }
+        #sidebar .dropdown-menu { background-color: var(--dropdown-bg); border-radius: 0.375rem; border: 1px solid var(--sidebar-link-hover-bg); padding: 0.5rem 0; margin-top: 0.25rem !important; box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); min-width: 200px; z-index: 1031; /* Above sidebar */ }
+        #sidebar .dropdown-item { color: var(--sidebar-link-color); padding: 0.6rem 1.5rem; font-size: 0.9rem; display: flex; align-items: center; transition: background-color 0.2s ease; }
+        #sidebar .dropdown-item i { margin-right: 0.8rem; font-size: 1rem; opacity: 0.8; width: 20px; text-align: center; }
         #sidebar .dropdown-item:hover,
         #sidebar .dropdown-item:focus { background-color: var(--dropdown-item-hover-bg); color: #ffffff; }
-        #sidebar .dropdown-item.active,
+        #sidebar .dropdown-item.active, /* Style active item within dropdown */
         #sidebar .dropdown-item:active { background-color: var(--sidebar-link-active-bg); color: var(--sidebar-link-active-color); }
         #sidebar .dropdown-item.placeholder-link { color: #94a3b8; cursor: not-allowed; display: flex; justify-content: space-between; }
         #sidebar .dropdown-item.placeholder-link:hover { background-color: transparent; color: #94a3b8; }
         #sidebar .dropdown-item .chevron-placeholder { font-size: 0.7rem; opacity: 0.6; }
+        #sidebar .dropdown-divider { border-color: var(--sidebar-link-hover-bg); margin: 0.5rem 0;}
 
         #main-content { margin-left: var(--sidebar-width); padding: 0; width: calc(100% - var(--sidebar-width)); transition: margin-left 0.3s ease, width 0.3s ease; overflow-x: hidden; }
-        .top-bar { background-color: #ffffff; padding: 0.8rem 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-        .top-bar .breadcrumb { margin-bottom: 0; }
-        .top-bar .user-info a { text-decoration: none; color: #64748b; }
+        .top-bar { background-color: #ffffff; padding: 0.8rem 1.5rem; border-bottom: 1px solid var(--card-border-color); display: flex; justify-content: space-between; align-items: center; }
+        .top-bar .breadcrumb { margin-bottom: 0; font-size: 0.9rem; }
+        .top-bar .breadcrumb-item a { color: var(--sidebar-link-active-bg); text-decoration: none;}
+        .top-bar .breadcrumb-item.active { color: var(--text-muted-color); }
+        .top-bar .user-info a { text-decoration: none; color: var(--text-muted-color); font-size: 0.9rem;}
         .top-bar .user-info i { margin-right: 0.5rem; }
         .content-wrapper { padding: 1.5rem; }
-        .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 1.5rem; }
-        .card-header { background-color: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; }
+        .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,.05), 0 1px 2px rgba(0,0,0,.03); margin-bottom: 1.5rem; border-radius: 0.375rem; }
+        .card-header { background-color: #fff; border-bottom: 1px solid var(--card-border-color); font-weight: 600; font-size: 0.95rem; padding: 1rem 1.25rem; }
+        .card-body { padding: 1.25rem; }
+
+         /* Leave Balance Circles */
+        .leave-balance-circle { width: 70px; height: 70px; border-radius: 50%; background-color: #e0f2fe; border: 4px solid #7dd3fc; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; color: #0c4a6e; line-height: 1.2; margin: 0 auto 0.5rem auto; }
+        .leave-balance-circle .days { font-size: 1.1rem; display: block; }
+        .leave-balance-label { font-size: 0.7rem; color: var(--text-muted-color); text-transform: uppercase; font-weight: 600; letter-spacing: 0.02em;}
 
     </style>
 </head>
@@ -60,90 +76,75 @@
              <i class="bi bi-person-workspace"></i> HRMS
         </div>
 
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}">
-                    <i class="bi bi-house-door-fill"></i> Home
-                </a>
-            </li>
+        <div class="sidebar-menu">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}">
+                        <i class="bi bi-house-door-fill"></i> Home
+                    </a>
+                </li>
 
-            <!-- "Me" Section Dropdown -->
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint in ['view_attendance', 'view_leaves', 'apply_leave'] else '' }}" href="#" id="meDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-fill"></i> Me
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="meDropdown">
-                    <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_attendance' else '' }}" href="{{ url_for('view_attendance') }}"><i class="bi bi-calendar-check"></i> Attendance</a></li>
-                    <li><a class="dropdown-item {{ 'active' if 'leave' in request.endpoint else '' }}" href="{{ url_for('view_leaves') }}"><i class="bi bi-calendar-x"></i> Leave</a></li>
-                    <li><hr class="dropdown-divider" style="border-color: var(--sidebar-link-hover-bg);"></li>
-                    <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-graph-up"></i> Performance</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li>
-                    <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-briefcase"></i> Expenses & Travel</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li>
-                    <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-grid-1x2"></i> Apps</span></a></li>
-                </ul>
-            </li>
+                <!-- "Me" Section Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint in ['view_attendance', 'view_leaves', 'apply_leave'] else '' }}" href="#" id="meDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-fill"></i> Me
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="meDropdown">
+                        <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_attendance' else '' }}" href="{{ url_for('view_attendance') }}"><i class="bi bi-calendar-check"></i> Attendance</a></li>
+                        <li><a class="dropdown-item {{ 'active' if 'leave' in request.endpoint else '' }}" href="{{ url_for('view_leaves') }}"><i class="bi bi-calendar-x"></i> Leave</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-graph-up"></i> Performance</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li>
+                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-briefcase"></i> Expenses & Travel</span><i class="bi bi-chevron-right chevron-placeholder"></i></a></li>
+                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-grid-1x2"></i> Apps</span></a></li>
+                    </ul>
+                </li>
 
-             <li class="nav-item">
-                <a class="nav-link disabled" href="#"> {# Example: Inbox section #}
-                    <i class="bi bi-inbox-fill"></i> Inbox
-                </a>
-            </li>
+                 <li class="nav-item">
+                    <a class="nav-link disabled" href="#"> {# Example: Inbox section #}
+                        <i class="bi bi-inbox-fill"></i> Inbox
+                    </a>
+                </li>
 
-             <li class="sidebar-heading">Work</li>
-             <li class="nav-item">
-                <a class="nav-link disabled" href="#"> {# Example: My Team section #}
-                    <i class="bi bi-people-fill"></i> My Team
-                </a>
-            </li>
+                 <li class="sidebar-heading">Work</li>
+                 <li class="nav-item">
+                    <a class="nav-link disabled" href="#"> {# Example: My Team section #}
+                        <i class="bi bi-people-fill"></i> My Team
+                    </a>
+                </li>
 
-            <!-- Finance Section Dropdown -->
-            <li class="sidebar-heading">Finance</li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint == 'view_payslips' else '' }}" href="#" id="financeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                   <i class="bi bi-currency-dollar"></i> My Finances
-                </a>
-                <ul class="dropdown-menu" aria-labelledby="financeDropdown">
-                     <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-text"></i> Summary</span></a></li>
-                    <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_payslips' else '' }}" href="{{ url_for('view_payslips') }}"><i class="bi bi-wallet2"></i> My Pay</a></li>
-                    <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-receipt"></i> Manage Tax</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
-                </ul>
-            </li>
+                <!-- Finance Section Dropdown -->
+                <li class="sidebar-heading">Finance</li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ 'active' if request.endpoint == 'view_payslips' else '' }}" href="#" id="financeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                       <i class="bi bi-currency-dollar"></i> My Finances
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="financeDropdown">
+                         <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-text"></i> Summary</span></a></li>
+                        <li><a class="dropdown-item {{ 'active' if request.endpoint == 'view_payslips' else '' }}" href="{{ url_for('view_payslips') }}"><i class="bi bi-wallet2"></i> My Pay</a></li>
+                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-receipt"></i> Manage Tax</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
+                    </ul>
+                </li>
 
-             <!-- === MODIFIED "Organization" Section === -->
-             <li class="sidebar-heading">Organization</li>
-             <li class="nav-item dropdown">
-                 <a class="nav-link dropdown-toggle" href="#" id="orgDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-diagram-3-fill"></i> Org
-                 </a>
-                 <ul class="dropdown-menu" aria-labelledby="orgDropdown">
-                     <li>
-                        <a class="dropdown-item placeholder-link" href="#">
-                            <span><i class="bi bi-people"></i> Employees</span>
-                            <i class="bi bi-chevron-right chevron-placeholder ms-auto"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item placeholder-link" href="#">
-                            <span><i class="bi bi-file-earmark-richtext"></i> Documents</span>
-                            <i class="bi bi-chevron-right chevron-placeholder ms-auto"></i>
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider" style="border-color: var(--sidebar-link-hover-bg);"></li>
-                     <li>
-                        <a class="dropdown-item placeholder-link" href="#">
-                             <span><i class="bi bi-megaphone"></i> Engage</span>
-                             {# No chevron as it's likely a direct section link #}
-                        </a>
-                    </li>
-                 </ul>
-             </li>
-             {# Removed the standalone Engage link as it's now inside the Org dropdown #}
-             <!-- === END MODIFIED "Organization" Section === -->
+                 <!-- Organization Section Dropdown -->
+                 <li class="sidebar-heading">Organization</li>
+                 <li class="nav-item dropdown">
+                     <a class="nav-link dropdown-toggle" href="#" id="orgDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-diagram-3-fill"></i> Org
+                     </a>
+                     <ul class="dropdown-menu" aria-labelledby="orgDropdown">
+                         <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-people"></i> Employees</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
+                        <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-file-earmark-richtext"></i> Documents</span><i class="bi bi-chevron-right chevron-placeholder ms-auto"></i></a></li>
+                        <li><hr class="dropdown-divider"></li>
+                         <li><a class="dropdown-item placeholder-link" href="#"><span><i class="bi bi-megaphone"></i> Engage</span></a></li>
+                     </ul>
+                 </li>
+            </ul>
+        </div> <!-- /sidebar-menu -->
 
-        </ul>
-         <div class="mt-auto p-3 text-center">
-             <small style="color: var(--sidebar-link-color); opacity: 0.6;">© {{ now.year }} Your Company</small>
+         <div class="sidebar-footer">
+             <small>© {{ now.year }} Your Company</small>
          </div>
-    </div>
+    </div> <!-- /sidebar -->
 
     <!-- Main Content Area -->
     <div id="main-content">
@@ -153,6 +154,7 @@
                  <nav aria-label="breadcrumb">
                     <ol class="breadcrumb bg-transparent p-0 m-0">
                         <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Home</a></li>
+                        {# Determine Page Title for Breadcrumb #}
                         {% set page_title = request.endpoint | replace('_', ' ') | title %}
                         {% if request.endpoint == 'view_attendance' %} {% set page_title = 'Attendance' %}
                         {% elif 'leave' in request.endpoint %} {% set page_title = 'Leave' %}
@@ -185,7 +187,7 @@
                 {% if messages %}
                     {% for category, message in messages %}
                         {% set alert_type = category if category in ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark'] else 'info' %}
-                        <div class="alert alert-{{ alert_type }} alert-dismissible fade show" role="alert">
+                        <div class="alert alert-{{ alert_type }} alert-dismissible fade show mb-4" role="alert">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>

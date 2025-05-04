@@ -2,57 +2,66 @@
 {% block title %}Leave Requests{% endblock %}
 
 {% block content %}
-     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-calendar-x"></i> Your Leave Requests</h2>
-        <a href="{{ url_for('apply_leave') }}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Apply for New Leave</a>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar-x me-2"></i> Your Leave Requests</span>
+        <a href="{{ url_for('apply_leave') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i> Apply for New Leave</a>
     </div>
+    <div class="card-body">
+        {# Add Leave Balance summary here later #}
+        {# <div class="mb-4 p-3 bg-light rounded"> ... Balances ... </div> #}
 
-    {% if leave_requests %}
-         <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Applied Date</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <!-- Add Action column if cancellation is allowed -->
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for leave in leave_requests %}
+        {% if leave_requests %}
+             <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered caption-top">
+                     <caption>List of your submitted leave requests and their status.</caption>
+                    <thead class="table-light">
                         <tr>
-                            <td>{{ leave.applied_date.strftime('%Y-%m-%d %H:%M') if leave.applied_date else 'N/A' }}</td>
-                            <td>{{ leave.start_date }}</td>
-                            <td>{{ leave.end_date }}</td>
-                            <td>{{ leave.reason | truncate(50) }}</td> {# Shorten long reasons #}
-                            <td>
-                                {% set status_class = 'secondary' %} {# Default #}
-                                {% if leave.status == 'Pending' %}
-                                    {% set status_class = 'warning text-dark' %}
-                                {% elif leave.status == 'Approved' %}
-                                    {% set status_class = 'success' %}
-                                {% elif leave.status == 'Rejected' %}
-                                    {% set status_class = 'danger' %}
-                                {% endif %}
-                                <span class="badge bg-{{ status_class }}">{{ leave.status }}</span>
-                            </td>
-                            <!-- Example Action:
-                            <td>
-                                {% if leave.status == 'Pending' %}
-                                <button class="btn btn-sm btn-danger" disabled>Cancel</button> {# Add form/route later #}
-                                {% endif %}
-                            </td>
-                            -->
+                            <th>Applied</th>
+                            <th>Type</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            {# Add Action column if cancellation is allowed later #}
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-         <div class="alert alert-info" role="alert">
-           You haven't applied for any leaves yet. <a href="{{ url_for('apply_leave') }}" class="alert-link">Apply Now?</a>
-        </div>
-    {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for leave in leave_requests %}
+                            <tr>
+                                <td class="text-nowrap">{{ leave.applied_date.strftime('%Y-%m-%d %H:%M') if leave.applied_date else 'N/A' }}</td>
+                                <td class="text-nowrap">{{ leave.leave_type | title if leave.leave_type else 'N/A'}}</td>
+                                <td class="text-nowrap">{{ leave.start_date }}</td>
+                                <td class="text-nowrap">{{ leave.end_date }}</td>
+                                <td>{{ leave.reason | truncate(60) }}</td> {# Shorten long reasons #}
+                                <td class="text-nowrap">
+                                    {% set status_class = 'secondary' %} {# Default #}
+                                    {% if leave.status == 'Pending' %}
+                                        {% set status_class = 'warning text-dark' %}
+                                    {% elif leave.status == 'Approved' %}
+                                        {% set status_class = 'success' %}
+                                    {% elif leave.status == 'Rejected' %}
+                                        {% set status_class = 'danger' %}
+                                    {% endif %}
+                                    <span class="badge bg-{{ status_class }}">{{ leave.status }}</span>
+                                </td>
+                                {# Example Action:
+                                <td>
+                                    {% if leave.status == 'Pending' %}
+                                    <button class="btn btn-sm btn-outline-danger disabled" title="Cancel request (not implemented)"><i class="bi bi-trash"></i></button>
+                                    {% endif %}
+                                </td>
+                                #}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+             <div class="alert alert-info" role="alert">
+               You haven't applied for any leaves yet. <a href="{{ url_for('apply_leave') }}" class="alert-link">Apply Now?</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

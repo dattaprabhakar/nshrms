@@ -2,48 +2,58 @@
 {% block title %}Attendance History{% endblock %}
 
 {% block content %}
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="bi bi-calendar-check"></i> Your Attendance History</h2>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar-check me-2"></i> Your Attendance History</span>
+        {# Add filtering options later if needed #}
     </div>
-
-    {% if attendance_records %}
-        <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Clock In</th>
-                        <th>Clock Out</th>
-                        <th>Duration (Approx)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in attendance_records %}
+    <div class="card-body">
+        {% if attendance_records %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-bordered caption-top">
+                     <caption>List of your recorded clock-ins and clock-outs.</caption>
+                    <thead class="table-light">
                         <tr>
-                            <td>{{ record.clock_in.strftime('%Y-%m-%d') if record.clock_in else 'N/A' }}</td>
-                            <td>{{ record.clock_in.strftime('%H:%M:%S') if record.clock_in else 'N/A' }}</td>
-                            <td>
-                                {% if record.clock_out %}
-                                    {{ record.clock_out.strftime('%H:%M:%S') }}
-                                {% else %}
-                                    <span class="badge bg-info">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if record.clock_in and record.clock_out %}
-                                    {{ (record.clock_out - record.clock_in) | string | replace('days,', 'd') | replace('day,', 'd') }}
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
+                            <th>Date</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Duration</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div class="alert alert-info" role="alert">
-            No attendance records found.
-        </div>
-    {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                            <tr>
+                                <td>{{ record.clock_in.strftime('%Y-%m-%d') if record.clock_in else 'N/A' }}</td>
+                                <td>{{ record.clock_in.strftime('%H:%M:%S') if record.clock_in else 'N/A' }}</td>
+                                <td>
+                                    {% if record.clock_out %}
+                                        {{ record.clock_out.strftime('%H:%M:%S') }}
+                                    {% else %}
+                                        <span class="badge bg-info text-dark">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.clock_in and record.clock_out %}
+                                        {# Calculate duration (basic example) #}
+                                        {% set duration = record.clock_out - record.clock_in %}
+                                        {% set hours = duration.seconds // 3600 %}
+                                        {% set minutes = (duration.seconds % 3600) // 60 %}
+                                        {{ '%dh %02dm'|format(hours, minutes) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {# Add pagination here later if needed #}
+        {% else %}
+            <div class="alert alert-info" role="alert">
+                No attendance records found.
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

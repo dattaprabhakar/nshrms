@@ -9,9 +9,9 @@
 
         <!-- Quick Access Card -->
         <div class="card">
-            <div class="card-header">Quick Access</div>
+             <div class="card-header">Quick Access</div>
             <div class="card-body">
-                <div class="alert alert-secondary" role="alert">
+                <div class="alert alert-secondary" role="alert" style="font-size: 0.85rem;">
                    For HR Queries: Contact HR Dept (hr@example.com) Ph XXXXXXXX
                 </div>
                 <p class="text-muted text-center mt-3">No Quick Links are added yet.</p>
@@ -21,7 +21,13 @@
 
         <!-- Holidays Card -->
         <div class="card holiday-card">
-             <i class="bi bi-calendar-heart holiday-icon"></i>
+             <style> /* Specific styles for this card */
+                .holiday-card { background: linear-gradient(to right, #2dd4bfcc, #38bdf8cc), url('https://images.unsplash.com/photo-1543713870-93b4415436b8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60') center center/cover no-repeat; color: white; position: relative; overflow: hidden;}
+                .holiday-card .card-body { position: relative; z-index: 2; }
+                .holiday-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.1); z-index: 1;} /* Slight overlay */
+                .holiday-card .holiday-icon { font-size: 4rem; opacity: 0.1; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 1;}
+             </style>
+             <i class="bi bi-flag holiday-icon"></i> {# Changed icon #}
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="card-title mb-0 text-white">Upcoming Holidays</h6>
@@ -29,15 +35,24 @@
                 </div>
                  {# Placeholder - replace with dynamic data later #}
                 <h5>Independence Day</h5>
-                <p class="mb-0"><small>Friday, 15 August, {{ now.year + 1 }}</small></p> {# Example year #}
-
+                <p class="mb-0"><small>Friday, 15 August, {{ now.year + 1 }}</small></p>
                 {# Add carousel here if needed for multiple holidays #}
             </div>
         </div>
 
         <!-- Time Card -->
         <div class="card time-card">
-            <div class="card-body">
+             <style> /* Specific styles for this card */
+                .time-card { background-color: #6366f1; color: white; } /* Indigo */
+                .time-card .card-body { text-align: center; }
+                .time-card .current-time { font-size: 2.5rem; font-weight: bold; line-height: 1; letter-spacing: -1px; }
+                .time-card .current-date { font-size: 0.9rem; opacity: 0.9; margin-bottom: 1.5rem;}
+                .time-card .btn-clock-in { background-color: #10b981; border-color: #10b981; color: white;} /* Emerald */
+                .time-card .btn-clock-out { background-color: #f59e0b; border-color: #f59e0b; color: white;} /* Amber */
+                .time-card .btn:hover { filter: brightness(110%); }
+                .time-card .attendance-actions small { color: rgba(255,255,255,0.8); font-size: 0.75rem;}
+             </style>
+             <div class="card-body">
                  <div class="d-flex justify-content-between align-items-center mb-2">
                      <h6 class="card-title mb-0 text-white opacity-75">Time Today</h6>
                      <a href="{{ url_for('view_attendance') }}" class="btn btn-sm btn-outline-light">View All</a>
@@ -46,26 +61,75 @@
                 <div class="current-time mb-3" id="current-time-display">
                     {{ now.strftime('%I:%M') }}<small style="font-size: 1rem;">{{ now.strftime('%p') }}</small>
                 </div>
-
-                {# Clock In/Out Buttons - Using existing logic #}
                 <div class="attendance-actions">
                     {% if not attendance_status.clocked_in %}
                         <form action="{{ url_for('clock_in') }}" method="POST" style="display: inline;">
-                            <button type="submit" class="btn btn-success btn-clock-in px-4">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Clock In
-                            </button>
+                            <button type="submit" class="btn btn-success btn-clock-in px-4"><i class="bi bi-box-arrow-in-right me-1"></i> Clock In</button>
                         </form>
                     {% elif not attendance_status.clocked_out %}
                         <form action="{{ url_for('clock_out') }}" method="POST" style="display: inline;">
-                            <button type="submit" class="btn btn-warning btn-clock-out px-4">
-                                <i class="bi bi-box-arrow-left me-1"></i> Clock Out
-                            </button>
+                            <button type="submit" class="btn btn-warning btn-clock-out px-4"><i class="bi bi-box-arrow-left me-1"></i> Clock Out</button>
                         </form>
                          <p class="mt-2 mb-0"><small>Clocked In at: {{ attendance_status.clock_in_time.strftime('%H:%M') }}</small></p>
                     {% else %}
-                         <p class="text-white-50"><i class="bi bi-check-circle-fill"></i> Attendance complete for today.</p>
+                         <p class="text-white-50"><i class="bi bi-check-circle-fill"></i> Attendance complete.</p>
                          <p class="mt-1 mb-0"><small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }} | Out: {{ attendance_status.clock_out_time.strftime('%H:%M') }}</small></p>
                     {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Inbox Card -->
+        <div class="card">
+            <div class="card-header">Inbox</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div>
+                        <i class="bi bi-envelope-paper-heart" style="font-size: 3rem; color: #fb7185;"></i> {# Rose color example #}
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="mb-1">Good job!</h6>
+                        <p class="text-muted mb-0 small">You have no pending actions.</p>
+                    </div>
+                </div>
+                 {# Add logic here later to display actual inbox items #}
+            </div>
+        </div>
+
+        <!-- Leave Balances Card -->
+        <div class="card">
+            <div class="card-header">Leave Balances</div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <!-- Placeholder Leave Balances - Replace with dynamic data -->
+                    <div class="col-4">
+                        <div class="leave-balance-circle">
+                            <span class="days">8</span> Days
+                        </div>
+                        <span class="leave-balance-label">Paid Leave</span>
+                    </div>
+                    <div class="col-4">
+                        <div class="leave-balance-circle">
+                             <span class="days">2.5</span> Days
+                        </div>
+                        <span class="leave-balance-label">Sick Leave</span>
+                    </div>
+                    <div class="col-4">
+                        <div class="leave-balance-circle">
+                            <span class="days">1</span> Day
+                        </div>
+                        <span class="leave-balance-label">Casual Leave</span>
+                    </div>
+                </div>
+                <hr class="my-3">
+                <div class="text-center">
+                    <a href="{{ url_for('apply_leave') }}" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-calendar-plus"></i> Request Leave
+                    </a>
+                    <a href="{{ url_for('view_leaves') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-journal-text"></i> View History
+                    </a>
+                     {# Link "View All Balances" to view_leaves for now #}
                 </div>
             </div>
         </div>
@@ -78,20 +142,14 @@
 
         <!-- Post/Poll/Praise Card -->
         <div class="card mb-4">
-            <div class="card-body">
-                 {# Tabs like Keka (Organization/Software Development) - Placeholder #}
+             <div class="card-body">
                  <ul class="nav nav-underline nav-fill mb-3" id="feedTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="org-tab" data-bs-toggle="tab" data-bs-target="#org-tab-pane" type="button" role="tab" aria-controls="org-tab-pane" aria-selected="true">Organization</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="dept-tab" data-bs-toggle="tab" data-bs-target="#dept-tab-pane" type="button" role="tab" aria-controls="dept-tab-pane" aria-selected="false">My Department</button>
-                    </li>
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="org-tab" data-bs-toggle="tab" data-bs-target="#org-tab-pane" type="button" role="tab" aria-controls="org-tab-pane" aria-selected="true">Organization</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="dept-tab" data-bs-toggle="tab" data-bs-target="#dept-tab-pane" type="button" role="tab" aria-controls="dept-tab-pane" aria-selected="false">My Department</button></li>
                 </ul>
-
                 <div class="tab-content" id="feedTabsContent">
                     <div class="tab-pane fade show active" id="org-tab-pane" role="tabpanel" aria-labelledby="org-tab" tabindex="0">
-                         <textarea class="form-control mb-2" rows="3" placeholder="Write your post here and mention your peers..."></textarea>
+                         <textarea class="form-control mb-2" rows="3" placeholder="Write your post here..."></textarea>
                          <div class="d-flex justify-content-between align-items-center">
                              <div>
                                  <button class="btn btn-sm btn-outline-secondary me-1 disabled"><i class="bi bi-pencil-fill"></i> Post</button>
@@ -101,36 +159,29 @@
                              <button class="btn btn-primary disabled">Submit</button>
                          </div>
                     </div>
-                    <div class="tab-pane fade" id="dept-tab-pane" role="tabpanel" aria-labelledby="dept-tab" tabindex="0">
-                        <p class="text-muted p-3">Department feed goes here...</p>
-                    </div>
+                    <div class="tab-pane fade" id="dept-tab-pane" role="tabpanel" aria-labelledby="dept-tab" tabindex="0"><p class="text-muted p-3">Department feed goes here...</p></div>
                 </div>
-
             </div>
         </div>
 
-
         <!-- Announcements Card -->
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                Announcements
-                <a href="#" class="btn btn-sm btn-outline-secondary disabled">View All</a>
-            </div>
+              <div class="card-header d-flex justify-content-between align-items-center">Announcements<a href="#" class="btn btn-sm btn-outline-secondary disabled">View All</a></div>
             <div class="card-body">
-                 {# Placeholder - Add dynamic announcements later #}
+                {# Placeholder - Add dynamic announcements later #}
                 <div class="announcement-item mb-3 pb-3 border-bottom">
                     <h6>Holiday Announcement: May Day</h6>
                     <p class="text-muted small mb-1">Posted by HR Department - 2 days ago</p>
-                    <p class="mb-1">Dear Team, This is to inform you that the office will remain closed tomorrow, Thursday, May 1st, on account of May Day...</p>
+                    <p class="mb-1 small">Dear Team, This is to inform you that the office will remain closed tomorrow, Thursday, May 1st, on account of May Day...</p>
                     <a href="#" class="small">view more</a>
                 </div>
                  <div class="announcement-item mb-3">
                     <h6>System Maintenance Schedule</h6>
                     <p class="text-muted small mb-1">Posted by IT Department - 3 days ago</p>
-                    <p class="mb-1">Please note that there will be scheduled maintenance on the internal servers this Saturday...</p>
+                    <p class="mb-1 small">Please note that there will be scheduled maintenance on the internal servers this Saturday...</p>
                     <a href="#" class="small">view more</a>
                 </div>
-                 <p class="text-muted text-center mt-3">No more announcements.</p>
+                 <p class="text-muted text-center mt-3 small">No more announcements.</p>
             </div>
         </div>
 
@@ -147,16 +198,20 @@
         const timeDisplay = document.getElementById('current-time-display');
         if (timeDisplay) {
             const now = new Date();
-            const hours = String(now.getHours() % 12 || 12).padStart(2, '0'); // 12-hour format
+            const hours = String(now.getHours() % 12 || 12); // 12-hour format, no padding needed for display
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
-            timeDisplay.innerHTML = `${hours}:${minutes}<small style="font-size: 1rem;">${ampm}</small>`;
+            timeDisplay.innerHTML = `${hours}:${minutes}<small style="font-size: 1rem; margin-left: 4px;">${ampm}</small>`;
         }
     }
+    updateTime(); // Update time immediately
+    // Update every second (more efficient would be every minute after the first second)
+    const clockInterval = setInterval(updateTime, 1000);
 
-    // Update time immediately and then every second
-    updateTime();
-    setInterval(updateTime, 1000); // Update every second
+    // Optional: Clear interval if user navigates away (more advanced)
+    // document.addEventListener('visibilitychange', () => {
+    //  if (document.hidden) { clearInterval(clockInterval); } else { clockInterval = setInterval(updateTime, 1000); }
+    // });
 
 </script>
 {% endblock %}

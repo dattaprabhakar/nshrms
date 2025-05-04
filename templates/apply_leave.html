@@ -3,27 +3,42 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-md-10 col-lg-8 col-xl-7"> {# Wider form area #}
         <div class="card shadow-sm">
             <div class="card-header">
-                <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Apply for Leave</h4>
+                <h4 class="mb-0"><i class="bi bi-calendar-plus me-2"></i> Apply for Leave</h4>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('apply_leave') }}">
-                     <div class="mb-3">
-                        <label for="start_date" class="form-label">Start Date</label>
-                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    <div class="row g-3"> {# Use grid for layout #}
+                        <div class="col-md-6 mb-3">
+                            <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="end_date" class="form-label">End Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="leave_type" class="form-label">Leave Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="leave_type" name="leave_type" required>
+                                <option value="" selected disabled>-- Select Type --</option>
+                                <option value="Paid Leave">Paid Leave</option>
+                                <option value="Sick Leave">Sick Leave</option>
+                                <option value="Casual Leave">Casual Leave</option>
+                                <option value="Unpaid Leave">Unpaid Leave</option>
+                                {# Add more leave types as needed #}
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="Briefly explain the reason for leave..." required></textarea>
+                        </div>
                     </div>
-                     <div class="mb-3">
-                        <label for="end_date" class="form-label">End Date</label>
-                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                    <div class="mt-4 d-flex justify-content-end"> {# Align buttons right #}
+                        <a href="{{ url_for('view_leaves') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i> Submit Request</button>
                     </div>
-                    <div class="mb-3">
-                        <label for="reason" class="form-label">Reason</label>
-                        <textarea class="form-control" id="reason" name="reason" rows="4" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Submit Request</button>
-                    <a href="{{ url_for('view_leaves') }}" class="btn btn-secondary">Cancel</a>
                 </form>
             </div>
         </div>
