@@ -1,6 +1,6 @@
 # hrms_portal/app.py
 import os
-import calendar # Added for team calendar
+import calendar
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from pymongo import MongoClient, ReturnDocument
 from bson import ObjectId
@@ -87,15 +87,31 @@ def inject_global_vars():
 
 @app.route('/setup_user') # Development only
 def setup_user():
+    """ Creates/updates a default admin user AND a standard user. """
     admin_username = "adminuser"; admin_password = "password123"
+    user_username = "testuser"; user_password = "password123"
+    messages = []
     try:
-        existing_user = users_collection.find_one({'username': admin_username})
+        # Admin User
+        existing_admin = users_collection.find_one({'username': admin_username})
+        if not existing_admin:
+            hashed_password = generate_password_hash(admin_password); user_data={'username':admin_username,'password':hashed_password,'full_name':'Administrator', 'employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}; users_collection.insert_one(user_data); msg = f"Admin user '{admin_username}' created."
+        else: msg = f"Admin user '{admin_username}' exists.";
+        if existing_admin and not existing_admin.get('is_admin'): users_collection.update_one({'_id': existing_admin['_id']}, {'$set': {'is_admin': True}}); msg += " (Updated to admin)"
+        messages.append(msg)
+
+        # Standard User
+        existing_user = users_collection.find_one({'username': user_username})
         if not existing_user:
-            hashed_password = generate_password_hash(admin_password); user_data={'username':admin_username,'password':hashed_password,'full_name':'Administrator','employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}; users_collection.insert_one(user_data); msg = f"Admin user '{admin_username}' created. PW: '{admin_password}'."
-        else: msg = f"Admin user '{admin_username}' already exists.";
-        if existing_user and not existing_user.get('is_admin'): users_collection.update_one({'_id': existing_user['_id']}, {'$set': {'is_admin': True}}); msg = f"User '{admin_username}' exists. Updated to admin."
-        print(f"SETUP: {msg}"); return msg
+             hashed_password = generate_password_hash(user_password); user_data={'username':user_username,'password':hashed_password,'full_name':'Test User', 'employee_id':'EMP001','is_admin':False,'created_at':datetime.utcnow(), 'job_title': 'Software Engineer', 'department': 'Technology', 'location': 'Remote', 'email': 'test@example.com', 'mobile': '123-456-7890'}; users_collection.insert_one(user_data); msg = f"Standard user '{user_username}' created."
+        else: msg = f"Standard user '{user_username}' exists."
+        messages.append(msg)
+
+        final_message = " | ".join(messages)
+        print(f"SETUP: {final_message}")
+        return final_message
     except Exception as e: print(f"Err setup_user: {e}"); return f"Error: {e}", 500
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -141,7 +157,9 @@ def clock_in():
     else:
         try: attendance_collection.insert_one({'user_id':user_id,'username':user['username'],'clock_in':datetime.now(),'clock_out':None,'date':date.today().strftime('%Y-%m-%d')}); flash("Clocked in!", "success")
         except Exception as e: print(f"Err clock-in {user_id}: {e}"); flash("Clock-in error.", "danger")
-    return redirect(url_for('dashboard'))
+    # Redirect to referring page or dashboard
+    return redirect(request.referrer or url_for('dashboard'))
+
 
 @app.route('/clock_out', methods=['POST'])
 @login_required
@@ -156,7 +174,8 @@ def clock_out():
         try: result=attendance_collection.update_one({'_id':attendance_status["record_id"],'clock_out':None},{'$set':{'clock_out':datetime.now()}}); flash("Clocked out!" if result.modified_count>0 else "Already clocked out?", "success" if result.modified_count>0 else "warning")
         except Exception as e: print(f"Err clock-out {user_id} rec {attendance_status['record_id']}: {e}"); flash("Clock-out error.", "danger")
     else: flash("Cannot find clock-in record.", "danger")
-    return redirect(url_for('dashboard'))
+    # Redirect to referring page or dashboard
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/attendance')
 @login_required
@@ -212,66 +231,63 @@ def view_payslips():
     except Exception as e: print(f"Err fetch user payslips {user['_id']}: {e}"); flash("Error fetching payslips.", "danger"); user_payslips=[]
     return render_template('payslips.html', user=user, payslips=user_payslips)
 
-# =============================
-# === NEW My Team Route START ===
-# =============================
 @app.route('/my_team')
 @login_required
 def my_team():
-    """ Displays the 'My Team' overview page for standard users. """
+    if session.get('is_admin'): flash("Team view NA for admin.", "info"); return redirect(url_for('admin_dashboard'))
+    user = get_current_user();
+    if not user: return redirect(url_for('login'))
+    team_stats = {"off_today_list":[], "not_in_yet_list":[], "on_time_count":0, "late_arrivals_count":0, "wfh_od_count":0, "remote_clockins_count":0}
+    current_date = date.today(); calendar_data = {"year": current_date.year, "month": current_date.month, "month_name": current_date.strftime("%B"), "weeks": []}
+    try:
+        today_str = current_date.strftime('%Y-%m-%d'); current_user_id = user['_id']
+        users_off_today = list(leaves_collection.find({"status":"Approved","start_date":{"$lte":today_str},"end_date":{"$gte":today_str},"user_id":{"$ne":current_user_id}},{"username":1,"leave_type":1,"_id":1}))
+        team_stats["off_today_list"] = users_off_today; off_today_ids = {u['_id'] for u in users_off_today}
+        today_start=datetime.combine(current_date,datetime.min.time()); today_end=datetime.combine(current_date,datetime.max.time())
+        clocked_in_ids = set(attendance_collection.distinct('user_id', {'clock_in': {'$gte':today_start, '$lt':today_end}}))
+        all_team_users = list(users_collection.find({"_id":{"$ne": current_user_id},"is_admin":{"$ne":True}},{"_id":1,"username":1}))
+        not_in_yet_list = [team_user['username'] for team_user in all_team_users if team_user['_id'] not in clocked_in_ids and team_user['_id'] not in off_today_ids]
+        team_stats["not_in_yet_list"] = not_in_yet_list
+        calendar_data["weeks"] = calendar.monthcalendar(calendar_data["year"], calendar_data["month"])
+        # Placeholder stats
+        team_stats['on_time_count'] = len(clocked_in_ids)
+    except Exception as e: print(f"Err My Team {user['_id']}: {e}"); flash("Could not load team data.", "warning")
+    return render_template('my_team.html', user=user, team_stats=team_stats, calendar_data=calendar_data)
+
+# ==================================
+# === NEW Employee Directory Route ===
+# ==================================
+@app.route('/organization/employees')
+@login_required
+def view_employee_directory():
+    """ Displays the Employee Directory page for standard users. """
     if session.get('is_admin'):
-        flash("Team view not applicable for admin account.", "info")
-        return redirect(url_for('admin_dashboard'))
+        # Admins use their own user management page
+        return redirect(url_for('admin_manage_users'))
 
     user = get_current_user()
     if not user: return redirect(url_for('login'))
 
-    # Initialize data structures
-    team_stats = {"off_today_list": [], "not_in_yet_list": [], "on_time_count": 0, "late_arrivals_count": 0, "wfh_od_count": 0, "remote_clockins_count": 0}
-    current_date = date.today()
-    calendar_data = {"year": current_date.year, "month": current_date.month, "month_name": current_date.strftime("%B"), "weeks": []}
-
+    employees = []
     try:
-        today_str = current_date.strftime('%Y-%m-%d')
-        current_user_id = user['_id']
-
-        # 1. Find users on approved leave today (excluding current user)
-        users_off_today = list(leaves_collection.find({
-            "status": "Approved", "start_date": {"$lte": today_str}, "end_date": {"$gte": today_str},
-            "user_id": {"$ne": current_user_id} }, {"username": 1, "leave_type": 1, "_id": 1})) # Include _id
-        team_stats["off_today_list"] = users_off_today
-        off_today_ids = {u['_id'] for u in users_off_today} # Set of IDs for quick lookup
-
-        # 2. Find users NOT clocked in yet today (who are not on leave)
-        today_start=datetime.combine(current_date,datetime.min.time()); today_end=datetime.combine(current_date,datetime.max.time())
-        clocked_in_ids = set(attendance_collection.distinct('user_id', {'clock_in': {'$gte':today_start, '$lt':today_end}}))
-
-        # Assuming 'team' means all non-admin users except self for now
-        all_team_users = list(users_collection.find({"_id": {"$ne": current_user_id}, "is_admin": {"$ne": True}}, {"_id": 1, "username": 1}))
-
-        not_in_yet_list = []
-        for team_user in all_team_users:
-            if team_user['_id'] not in clocked_in_ids and team_user['_id'] not in off_today_ids:
-                 not_in_yet_list.append(team_user['username']) # Get username
-        team_stats["not_in_yet_list"] = not_in_yet_list
-
-        # 3. Generate Calendar Data (structure only for now)
-        calendar_data["weeks"] = calendar.monthcalendar(calendar_data["year"], calendar_data["month"])
-
-        # 4. Placeholder Stats (Implement actual logic later)
-        team_stats['on_time_count'] = len(clocked_in_ids) # Simplistic: everyone clocked in is on time
-        # Add logic for late arrivals based on shift times
-        # Add logic for WFH/OD based on leave types or other flags
-        # Add logic for remote clockins based on IP/metadata later
+        # Fetch all non-admin users, sorted by name
+        # Exclude password, include fields needed for display
+        employees = list(users_collection.find(
+            {'is_admin': {'$ne': True}}, # Filter out admins
+            {'password': 0, '_id': 1, 'full_name': 1, 'username': 1, 'job_title': 1, 'department': 1, 'location': 1, 'email': 1, 'mobile': 1}
+        ).sort('full_name', 1))
 
     except Exception as e:
-        print(f"Error fetching My Team data for user {user['_id']}: {e}")
-        flash("Could not load some 'My Team' data.", "warning")
+        print(f"Error fetching employee directory: {e}")
+        flash("Could not load employee directory.", "danger")
 
-    return render_template('my_team.html', user=user, team_stats=team_stats, calendar_data=calendar_data)
-# ===========================
-# === NEW My Team Route END ===
-# ===========================
+    # Pass the current user (for base template) and the list of employees
+    return render_template('org/employee_directory.html',
+                           user=user,
+                           employees=employees)
+# ==================================
+# === END Employee Directory Route ===
+# ==================================
 
 
 # =========================

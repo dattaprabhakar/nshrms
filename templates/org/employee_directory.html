@@ -1,0 +1,111 @@
+{# templates/org/employee_directory.html #}
+{% extends "base.html" %}
+{% block title %}Employee Directory{% endblock %}
+
+{% block content %}
+<style>
+    /* Specific styles for employee directory */
+    .org-nav .nav-link { color: var(--text-muted-color); border-bottom: 3px solid transparent; padding-bottom: 0.5rem; margin-bottom: -1px; /* Overlap border */ }
+    .org-nav .nav-link.active { color: var(--sidebar-link-active-bg); border-color: var(--sidebar-link-active-bg); font-weight: 500; }
+    .filter-bar { background-color: #fff; padding: 1rem; border: 1px solid var(--card-border-color); border-radius: 0.375rem; margin-bottom: 1.5rem; }
+    .filter-bar .form-control, .filter-bar .form-select { font-size: 0.85rem; height: calc(1.5em + 0.75rem + 2px); } /* Smaller inputs */
+    .employee-card { transition: box-shadow 0.2s ease-in-out; }
+    .employee-card:hover { box-shadow: 0 0.5rem 1rem rgba(0,0,0,.1) !important; }
+    .employee-card img { width: 70px; height: 70px; object-fit: cover; }
+    .employee-card .card-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.1rem;}
+    .employee-card .card-subtitle { font-size: 0.85rem; color: var(--text-muted-color); margin-bottom: 0.75rem;}
+    .employee-card .card-text { font-size: 0.8rem; color: #475569; margin-bottom: 0.2rem; } /* Slate 600 */
+    .employee-card .card-text i { width: 16px; text-align: center; margin-right: 5px; color: var(--text-muted-color); }
+</style>
+
+{# Top Org Navigation (Placeholders for other tabs) #}
+<nav class="nav nav-underline nav-fill mb-4 border-bottom pb-2 org-nav">
+    <a class="nav-link active" aria-current="page" href="{{ url_for('view_employee_directory') }}">EMPLOYEES</a>
+    <a class="nav-link disabled" href="#">DOCUMENTS</a>
+    <a class="nav-link disabled" href="#">ENGAGE</a>
+</nav>
+
+{# Sub Navigation #}
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" href="{{ url_for('view_employee_directory') }}">Employee Directory</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link disabled" href="#">Organization Tree</a>
+    </li>
+</ul>
+
+<h3 class="mb-4">Employee Directory</h3>
+
+{# Filter Bar (Placeholders) #}
+<div class="filter-bar">
+    <form class="row g-2 align-items-center">
+        <div class="col-lg col-md-4 col-sm-6">
+            <select class="form-select form-select-sm" disabled><option selected>Business Unit</option></select>
+        </div>
+         <div class="col-lg col-md-4 col-sm-6">
+            <select class="form-select form-select-sm" disabled><option selected>Department</option></select>
+        </div>
+         <div class="col-lg col-md-4 col-sm-6">
+            <select class="form-select form-select-sm" disabled><option selected>Location</option></select>
+        </div>
+         <div class="col-lg col-md-4 col-sm-6">
+             <select class="form-select form-select-sm" disabled><option selected>Cost Center</option></select>
+        </div>
+         <div class="col-lg col-md-4 col-sm-6">
+            <select class="form-select form-select-sm" disabled><option selected>Legal Entity</option></select>
+        </div>
+        <div class="col-lg-3 col-md-4 col-sm-12">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control" placeholder="Search..." disabled>
+            </div>
+        </div>
+        <div class="col-auto ms-lg-auto text-end"> {# Filter icon #}
+             <button type="button" class="btn btn-sm btn-outline-secondary disabled" title="Filter"><i class="bi bi-funnel"></i></button>
+        </div>
+    </form>
+</div>
+
+{# Showing Count (Placeholder) #}
+<div class="text-end text-muted small mb-3">
+    Showing {{ employees | length }} of {{ employees | length }} employees
+</div>
+
+{# Employee Cards Grid #}
+<div class="row">
+    {% if employees %}
+        {% for emp in employees %}
+        <div class="col-md-6 col-lg-4 col-xl-3 mb-4 d-flex align-items-stretch"> {# Ensure columns stretch #}
+            <div class="card employee-card w-100 shadow-sm">
+                <div class="card-body d-flex">
+                     <div class="flex-shrink-0 me-3">
+                         {# Placeholder image - replace with dynamic src later #}
+                         <img src="https://via.placeholder.com/70/{{ loop.index * 10 + 600 }}/FFFFFF?text={{ emp.full_name[0] if emp.full_name else 'U' }}"
+                              class="rounded-circle" alt="{{ emp.full_name | default('Employee') }}">
+                     </div>
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">{{ emp.full_name | default('N/A') | title }}</h5>
+                        <h6 class="card-subtitle mb-2">{{ emp.job_title | default('N/A') | title }}</h6>
+                        <p class="card-text"><i class="bi bi-building"></i> {{ emp.department | default('N/A') | title }}</p>
+                        <p class="card-text"><i class="bi bi-geo-alt-fill"></i> {{ emp.location | default('N/A') | title }}</p>
+                        <p class="card-text"><i class="bi bi-envelope-fill"></i> {{ emp.email | default('N/A') }}</p>
+                        <p class="card-text"><i class="bi bi-telephone-fill"></i> {{ emp.mobile | default('N/A') }}</p>
+                        {# Add more fields like Work phone etc. if available #}
+                         {# <p class="card-text"><i class="bi bi-phone-fill"></i> {{ emp.work_phone | default('N/A') }}</p> #}
+                    </div>
+                     {# Optional: Action dots - placeholder #}
+                     {# <div class="ms-auto"> <button class="btn btn-sm btn-light disabled" style="padding: 0.1rem 0.4rem;"><i class="bi bi-three-dots"></i></button> </div> #}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col">
+            <div class="alert alert-secondary">No employees found in the directory.</div>
+        </div>
+    {% endif %}
+</div>
+{# Add Pagination Here Later #}
+
+{% endblock %}
