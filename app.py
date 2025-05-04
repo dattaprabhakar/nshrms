@@ -187,15 +187,51 @@ def clock_out():
     else: flash("Cannot find clock-in record.", "danger")
     return redirect(url_for('dashboard'))
 
+# ================================================
+# === MODIFIED view_attendance Route START ===
+# ================================================
 @app.route('/attendance')
 @login_required
 def view_attendance():
-    if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
-    user=get_current_user();
-    if not user: return redirect(url_for('login'))
-    try: user_attendance = list(attendance_collection.find({'user_id':user['_id']}).sort('clock_in',-1))
-    except Exception as e: print(f"Err fetch user att {user['_id']}: {e}"); flash("Error fetching attendance.", "danger"); user_attendance=[]
-    return render_template('attendance.html', user=user, attendance_records=user_attendance)
+    """ Displays the detailed attendance page for the logged-in user. """
+    if session.get('is_admin'):
+        flash("Admin attendance overview not yet implemented.", "info")
+        return redirect(url_for('admin_dashboard'))
+
+    user = get_current_user()
+    if not user: return redirect(url_for('login')) # Should be caught by decorator
+
+    # Initialize with default values
+    user_attendance = []
+    # Ensure the default status is a dictionary with expected keys
+    attendance_status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
+
+    try:
+        # Fetch historical records
+        user_attendance = list(attendance_collection.find(
+            {'user_id': user['_id']}
+        ).sort('clock_in', -1))
+
+        # Fetch today's status for the Actions widget
+        # This will overwrite the default if successful
+        attendance_status = get_today_attendance_status(user['_id'])
+
+    except Exception as e:
+        print(f"Error fetching user attendance data for {user['_id']}: {e}")
+        flash("Error fetching attendance data.", "danger")
+        # Keep user_attendance as empty list
+        # attendance_status retains its default dictionary value if error occurs here
+
+    # **** THIS IS THE CRITICAL LINE (Ensured presence) ****
+    # Ensure 'attendance_status' is explicitly passed to the template
+    return render_template('attendance.html',
+                           user=user,
+                           attendance_records=user_attendance,
+                           attendance_status=attendance_status) # <<< PASSING attendance_status HERE
+# ================================================
+# === MODIFIED view_attendance Route END ===
+# ================================================
+
 
 @app.route('/leaves')
 @login_required
@@ -245,12 +281,8 @@ def view_payslips():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    """ Admin dashboard displaying key statistics. """
-    user = get_current_user() # <<< GET THE CURRENT (ADMIN) USER
-    if not user: # Should not happen due to decorator, but defensive check
-        flash("Admin session invalid. Please log in again.", "warning")
-        return redirect(url_for('login'))
-
+    user = get_current_user() # Get logged-in admin user
+    if not user: flash("Admin session invalid.", "warning"); return redirect(url_for('login'))
     stats = {'user_count':'N/A', 'pending_leaves_count':'N/A', 'attendance_today':'N/A'}
     try:
         stats['user_count'] = users_collection.count_documents({})
@@ -258,14 +290,12 @@ def admin_dashboard():
         today_start=datetime.combine(date.today(),datetime.min.time()); today_end=datetime.combine(date.today(),datetime.max.time())
         stats['attendance_today'] = len(attendance_collection.distinct('user_id', {'clock_in':{'$gte':today_start,'$lt':today_end}}))
     except Exception as e: print(f"Err admin dashboard stats: {e}"); flash("Could not load stats.", "warning")
-
-    # <<< PASS THE 'user' OBJECT TO THE TEMPLATE >>>
-    return render_template('admin/dashboard.html', user=user, **stats)
+    return render_template('admin/dashboard.html', user=user, **stats) # Pass user AND stats
 
 @app.route('/admin/users')
 @admin_required
 def admin_manage_users():
-    user = get_current_user() # Pass user to base template
+    user = get_current_user()
     if not user: return redirect(url_for('login'))
     try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1))
     except Exception as e: print(f"Err admin fetch users: {e}"); flash("Could not load users.", "danger"); all_users=[]
@@ -274,7 +304,7 @@ def admin_manage_users():
 @app.route('/admin/leaves')
 @admin_required
 def admin_manage_leaves():
-    user = get_current_user() # Pass user to base template
+    user = get_current_user()
     if not user: return redirect(url_for('login'))
     try:
         filter_status = request.args.get('status','All')
@@ -311,14 +341,13 @@ def admin_action_leave(leave_id, action):
 @app.route('/admin/settings')
 @admin_required
 def admin_settings():
-    """ Placeholder page for Admin Settings. """
-    user = get_current_user() # Pass user to base template
+    user = get_current_user()
     if not user: return redirect(url_for('login'))
     return render_template('admin/settings.html', user=user)
 
 # --- Error Handling ---
 @app.errorhandler(404)
-def page_not_found(e): user = get_current_user(); return render_template('errors/404.html', user=user), 404 # Pass user if available
+def page_not_found(e): user = get_current_user(); return render_template('errors/404.html', user=user), 404
 @app.errorhandler(500)
 def internal_server_error(e): user = get_current_user(); print(f"Internal Server Error: {e}"); return render_template('errors/500.html', user=user), 500
 @app.errorhandler(403)
