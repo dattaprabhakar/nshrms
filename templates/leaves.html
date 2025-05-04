@@ -2,32 +2,57 @@
 {% block title %}Leave Requests{% endblock %}
 
 {% block content %}
-    <h2>Your Leave Requests</h2>
-    <p><a href="{{ url_for('apply_leave') }}">Apply for New Leave</a></p>
+     <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-calendar-x"></i> Your Leave Requests</h2>
+        <a href="{{ url_for('apply_leave') }}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Apply for New Leave</a>
+    </div>
+
     {% if leave_requests %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Applied Date</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for leave in leave_requests %}
+         <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered">
+                <thead class="table-light">
                     <tr>
-                         <td>{{ leave.applied_date.strftime('%Y-%m-%d %H:%M') if leave.applied_date else 'N/A' }}</td>
-                        <td>{{ leave.start_date }}</td>
-                        <td>{{ leave.end_date }}</td>
-                        <td>{{ leave.reason }}</td>
-                        <td>{{ leave.status }}</td>
+                        <th>Applied Date</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <!-- Add Action column if cancellation is allowed -->
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for leave in leave_requests %}
+                        <tr>
+                            <td>{{ leave.applied_date.strftime('%Y-%m-%d %H:%M') if leave.applied_date else 'N/A' }}</td>
+                            <td>{{ leave.start_date }}</td>
+                            <td>{{ leave.end_date }}</td>
+                            <td>{{ leave.reason | truncate(50) }}</td> {# Shorten long reasons #}
+                            <td>
+                                {% set status_class = 'secondary' %} {# Default #}
+                                {% if leave.status == 'Pending' %}
+                                    {% set status_class = 'warning text-dark' %}
+                                {% elif leave.status == 'Approved' %}
+                                    {% set status_class = 'success' %}
+                                {% elif leave.status == 'Rejected' %}
+                                    {% set status_class = 'danger' %}
+                                {% endif %}
+                                <span class="badge bg-{{ status_class }}">{{ leave.status }}</span>
+                            </td>
+                            <!-- Example Action:
+                            <td>
+                                {% if leave.status == 'Pending' %}
+                                <button class="btn btn-sm btn-danger" disabled>Cancel</button> {# Add form/route later #}
+                                {% endif %}
+                            </td>
+                            -->
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p>No leave requests found.</p>
+         <div class="alert alert-info" role="alert">
+           You haven't applied for any leaves yet. <a href="{{ url_for('apply_leave') }}" class="alert-link">Apply Now?</a>
+        </div>
     {% endif %}
 {% endblock %}

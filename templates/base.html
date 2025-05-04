@@ -4,59 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}HRMS Portal{% endblock %}</title>
-    <!-- Add CSS links here -->
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { font-family: sans-serif; margin: 20px; }
-        nav { background-color: #f0f0f0; padding: 10px; margin-bottom: 20px; }
-        nav a { margin-right: 15px; text-decoration: none; color: #333; }
-        .flash-messages { list-style: none; padding: 0; }
-        .flash-messages li { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
-        .flash-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .flash-warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .flash-info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        form label { display: block; margin-bottom: 5px; }
-        form input[type="text"], form input[type="password"], form input[type="date"], form textarea {
-            width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; box-sizing: border-box;
-        }
-        form button { padding: 10px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; }
-        form button:hover { background-color: #0056b3; }
-        .user-info { float: right; }
+        /* Optional custom styles */
+        body { background-color: #f8f9fa; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .card { margin-bottom: 1.5rem; }
+        .welcome-banner { background-color: #e9ecef; padding: 2rem 1rem; margin-bottom: 2rem; border-radius: .3rem; }
     </style>
 </head>
 <body>
-    <nav>
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('view_attendance') }}">Attendance</a>
-        <a href="{{ url_for('view_leaves') }}">Leaves</a>
-        <a href="{{ url_for('view_payslips') }}">Payslips</a>
-        {% if session.user_id %}
-            <span class="user-info">
-                Welcome, {{ session.username }}!
-                <a href="{{ url_for('logout') }}">Logout</a>
-            </span>
-        {% else %}
-             <a href="{{ url_for('login') }}" style="float: right;">Login</a>
-        {% endif %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-white mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') if session.user_id else url_for('login') }}">
+                <i class="bi bi-person-workspace"></i> HRMS Portal
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if session.user_id %}
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="{{ url_for('dashboard') }}">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('view_attendance') }}">Attendance</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('view_leaves') }}">Leaves</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('view_payslips') }}">Payslips</a>
+                        </li>
+                    {% endif %}
+                </ul>
+                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                     {% if session.user_id %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle"></i> {{ session.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <!-- Add profile link later if needed -->
+                                <!-- <li><a class="dropdown-item" href="#">Profile</a></li> -->
+                                <!-- <li><hr class="dropdown-divider"></li> -->
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                            </ul>
+                        </li>
+                     {% else %}
+                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                         </li>
+                     {% endif %}
+                 </ul>
+            </div>
+        </div>
     </nav>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class="flash-messages">
-            {% for category, message in messages %}
-                <li class="flash-{{ category }}">{{ message }}</li>
-            {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+        <main>
+            {% block content %}{% endblock %}
+        </main>
 
-    <!-- Add JS scripts here if needed -->
+        <footer class="mt-5 text-center text-muted">
+            <p>© {{ now().year }} Your Company HRMS</p>
+        </footer>
+    </div>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
