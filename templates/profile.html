@@ -1,0 +1,82 @@
+{# templates/profile.html #}
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<style>
+    .profile-card img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+    }
+    .profile-details dt {
+        font-weight: 500;
+        color: var(--text-muted-color);
+        width: 120px; /* Adjust for alignment */
+        flex-shrink: 0;
+    }
+     .profile-details dd {
+        margin-bottom: 0.75rem;
+        color: #334155; /* Darker text */
+     }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card profile-card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                 <span><i class="bi bi-person-badge-fill me-2"></i>My Profile</span>
+                 {# Add Edit button later #}
+                 <a href="#" class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-pencil-square me-1"></i> Edit Profile</a>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-3 text-center">
+                        {# Placeholder Avatar #}
+                        <img src="https://via.placeholder.com/100/{{ '6366f1' if is_admin else '0ea5e9' }}/FFFFFF?text={{ user.full_name[0] if user.full_name else 'U' }}"
+                             class="rounded-circle mb-3 img-thumbnail" alt="Profile Picture">
+                         {# Add file upload later #}
+                    </div>
+                    <div class="col-md-9">
+                        <h4 class="mb-0">{{ user.full_name | default('N/A') | title }}</h4>
+                        <p class="text-muted mb-3">{{ user.job_title | default('N/A') | title }}</p>
+
+                        <dl class="row profile-details">
+                            <dt class="col-sm-3">Username:</dt>
+                            <dd class="col-sm-9">{{ user.username }}</dd>
+
+                            <dt class="col-sm-3">Employee ID:</dt>
+                            <dd class="col-sm-9">{{ user.employee_id | default('N/A') }}</dd>
+
+                            <dt class="col-sm-3">Department:</dt>
+                            <dd class="col-sm-9">{{ user.department | default('N/A') | title }}</dd>
+
+                             <dt class="col-sm-3">Location:</dt>
+                            <dd class="col-sm-9">{{ user.location | default('N/A') | title }}</dd>
+
+                            <dt class="col-sm-3">Email:</dt>
+                            <dd class="col-sm-9">{{ user.email | default('N/A') }}</dd>
+
+                             <dt class="col-sm-3">Mobile:</dt>
+                            <dd class="col-sm-9">{{ user.mobile | default('N/A') }}</dd>
+
+                            <dt class="col-sm-3">Role:</dt>
+                            <dd class="col-sm-9">{% if user.is_admin %}Administrator{% else %}Standard User{% endif %}</dd>
+
+                             <dt class="col-sm-3">Joined:</dt>
+                            <dd class="col-sm-9">{{ user.created_at.strftime('%d %B %Y') if user.created_at else 'N/A' }}</dd>
+                        </dl>
+                        {# Add more fields as needed (e.g., Manager, Date of Birth etc.) #}
+
+                         <hr>
+                         {# Placeholder for actions like 'Change Password' #}
+                          <button class="btn btn-sm btn-outline-danger disabled">Change Password</button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

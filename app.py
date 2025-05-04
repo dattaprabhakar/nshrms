@@ -8,142 +8,70 @@ from werkzeug.utils import secure_filename
 # --- Database and ObjectId ---
 from pymongo import MongoClient, ReturnDocument
 from bson import ObjectId
-from bson.errors import InvalidId # Correct import for ObjectId errors
+from bson.errors import InvalidId
 # --- Standard Python Libraries ---
 from datetime import datetime, date, timedelta
 from functools import wraps
 from dotenv import load_dotenv
 
-load_dotenv() # Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
-# --- Core Application Configuration ---
+# --- Configuration ---
 app.secret_key = os.getenv("SECRET_KEY")
-if not app.secret_key:
-    print("CRITICAL: SECRET_KEY not found in environment variables. Application startup aborted.")
-    exit(1) # Exit if secret key is missing
-
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8) # Example session timeout
-# Set debug status based on FLASK_ENV (Flask >= 2.3 reads this)
+if not app.secret_key: print("CRITICAL: SECRET_KEY not found."); exit(1)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 app.config['DEBUG'] = os.environ.get('FLASK_ENV', 'production').lower() == 'development'
 
 # --- Payslip Storage Configuration ---
 PAYSLIP_STORAGE_PATH = os.getenv("PAYSLIP_FOLDER")
-if not PAYSLIP_STORAGE_PATH:
-    print("CRITICAL: PAYSLIP_FOLDER environment variable not set. Payslip downloads will fail.")
-    PAYSLIP_STORAGE_PATH = None # Indicate that it's not configured
-elif not os.path.isdir(PAYSLIP_STORAGE_PATH):
-    print(f"CRITICAL: Configured PAYSLIP_FOLDER '{PAYSLIP_STORAGE_PATH}' does not exist or is not a directory.")
-    exit(1) # Exit if configured path is invalid
-else:
-     print(f"INFO: Payslip storage configured at: {PAYSLIP_STORAGE_PATH}")
-
+if not PAYSLIP_STORAGE_PATH: print("CRITICAL: PAYSLIP_FOLDER not set."); PAYSLIP_STORAGE_PATH = None
+elif not os.path.isdir(PAYSLIP_STORAGE_PATH): print(f"CRITICAL: PAYSLIP_FOLDER '{PAYSLIP_STORAGE_PATH}' not found."); exit(1)
+else: print(f"INFO: Payslip storage: {PAYSLIP_STORAGE_PATH}")
 
 # --- Database Setup ---
 try:
-    mongo_uri = os.getenv("MONGO_URI")
-    if not mongo_uri: raise ValueError("MONGO_URI not found in environment variables.")
-
-    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000) # Added timeout
-    # Determine database name from URI or use default
-    try:
-        db_name_part = mongo_uri.split('/')[-1]
-        db_name = db_name_part.split('?')[0]
-        if not db_name or db_name == 'admin': # Avoid using 'admin' db directly
-             raise IndexError("Invalid or missing database name in URI")
-    except IndexError:
-        db_name = 'hrms_db' # Default database name
-        print(f"Warning: Could not parse DB name from MONGO_URI, using default '{db_name}'. Ensure this is correct.")
-
+    mongo_uri = os.getenv("MONGO_URI");
+    if not mongo_uri: raise ValueError("MONGO_URI not found.")
+    client = MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+    try: db_name = mongo_uri.split('/')[-1].split('?')[0]; assert db_name and db_name != 'admin'
+    except: db_name = 'hrms_db'; print(f"Warning: Using default DB name '{db_name}'.")
     db = client[db_name]
-
-    # Define collections
-    users_collection = db.users
-    attendance_collection = db.attendance
-    leaves_collection = db.leaves
-    payslips_collection = db.payslips
-
-    # Verify connection by pinging the server
-    client.admin.command('ping')
-    print(f"INFO: MongoDB connected successfully to database: '{db.name}'")
-
-    # Ensure indexes exist (create if not present, run in background)
-    users_collection.create_index("username", unique=True, background=True)
-    users_collection.create_index("employee_id", unique=True, background=True, sparse=True)
-    attendance_collection.create_index([("user_id", 1), ("clock_in", -1)], background=True)
-    leaves_collection.create_index([("user_id", 1), ("applied_date", -1)], background=True)
-    leaves_collection.create_index("status", background=True)
-    payslips_collection.create_index([("user_id", 1), ("year", -1), ("month", -1)], background=True)
-    print("INFO: MongoDB indexes checked/created.")
-
-except ValueError as ve:
-     print(f"CRITICAL Config Error: {ve}")
-     exit(1)
-except Exception as e: # Catch more specific pymongo errors later if needed
-    print(f"CRITICAL: Error connecting to or setting up MongoDB - {e}")
-    print("Please ensure MongoDB is running and MONGO_URI is configured correctly.")
-    exit(1)
+    users_collection=db.users; attendance_collection=db.attendance; leaves_collection=db.leaves; payslips_collection=db.payslips
+    users_collection.create_index("username",unique=True,background=True); users_collection.create_index("employee_id",unique=True,background=True,sparse=True); attendance_collection.create_index([("user_id",1),("clock_in",-1)],background=True); leaves_collection.create_index([("user_id",1),("applied_date",-1)],background=True); leaves_collection.create_index("status",background=True); payslips_collection.create_index([("user_id",1),("year",-1),("month",-1)],background=True)
+    client.admin.command('ping'); print(f"INFO: MongoDB connected: '{db.name}'. Indexes checked.")
+except Exception as e: print(f"CRITICAL: MongoDB connection/setup error - {e}"); exit(1)
 
 
 # --- Helper Functions & Decorators ---
 def login_required(f):
-    """Decorator: Ensures user is logged in (standard or admin)."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to access this page.", "warning")
-            session['next_url'] = request.url
-            return redirect(url_for('login'))
+        if 'user_id' not in session: flash("Please log in.", "warning"); session['next_url']=request.url; return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
-    """Decorator: Ensures user is logged in AND is marked as an admin."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to access the admin area.", "warning")
-            session['next_url'] = request.url
-            return redirect(url_for('login'))
-        if not session.get('is_admin'):
-            print(f"Access Denied: User {session.get('username')} ({session.get('user_id')}) attempted admin route {request.path}")
-            flash("Admin access required for this page.", "danger")
-            return redirect(url_for('dashboard'))
+        if 'user_id' not in session: flash("Please log in.", "warning"); session['next_url']=request.url; return redirect(url_for('login'))
+        if not session.get('is_admin'): print(f"Access Denied: User {session.get('username')} -> {request.path}"); flash("Admin access required.", "danger"); return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 def get_current_user():
-    """ Fetches the logged-in user's data from DB safely. Returns user dict or None. """
-    user_id_str = session.get('user_id')
+    user_id_str = session.get('user_id');
     if not user_id_str: return None
-    try:
-        user_object_id = ObjectId(user_id_str) # Ensure ID is valid before querying
-        user = users_collection.find_one({'_id': user_object_id})
-        if not user:
-            print(f"Auth Warning: User ID {user_id_str} in session not found. Clearing session.")
-            session.clear(); return None
-        return user
-    except InvalidId: # Catch if the session ID is not a valid ObjectId format
-        print(f"Auth Error: Invalid ObjectId format in session user_id: {user_id_str}. Clearing session.")
-        session.clear(); return None
-    except Exception as e:
-        print(f"Error fetching user for session ID {user_id_str}: {e}")
-        session.clear(); return None
+    try: user = users_collection.find_one({'_id': ObjectId(user_id_str)}); return user if user else session.clear() or None
+    except Exception as e: print(f"Err fetch user {user_id_str}: {e}"); session.clear(); return None
 
 def get_today_attendance_status(user_id):
-    """ Checks current day's clock-in/out status for a given user_id (ObjectId). """
-    default_status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
-    if not isinstance(user_id, ObjectId):
-        print(f"Error: Invalid user_id type ({type(user_id)}) for attendance check.")
-        return default_status
-
-    today_start = datetime.combine(date.today(), datetime.min.time())
-    today_end = datetime.combine(date.today(), datetime.max.time())
-    status = default_status.copy() # Start with default
-
+    default_status={"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
+    if not isinstance(user_id, ObjectId): return default_status
+    today_start=datetime.combine(date.today(),datetime.min.time()); today_end=datetime.combine(date.today(),datetime.max.time()); status = default_status.copy()
     try:
-        record = attendance_collection.find_one({'user_id': user_id, 'clock_in': {'$gte': today_start, '$lt': today_end}}, sort=[('clock_in', -1)])
+        record = attendance_collection.find_one({'user_id': user_id, 'clock_in': {'$gte':today_start, '$lt':today_end}}, sort=[('clock_in',-1)])
         if record: status.update({"clocked_in":True,"clock_in_time":record.get('clock_in'), "record_id":record.get('_id'), "clocked_out":bool(record.get('clock_out')), "clock_out_time":record.get('clock_out')})
     except Exception as e: print(f"Err fetch att status {user_id}: {e}")
     return status
@@ -151,41 +79,34 @@ def get_today_attendance_status(user_id):
 # --- Context Processors ---
 @app.context_processor
 def inject_global_vars():
-    """ Injects common variables into all templates' contexts. """
-    is_admin = False
-    if 'user_id' in session: is_admin = session.get('is_admin', False)
+    is_admin = session.get('is_admin', False) if 'user_id' in session else False
     debug_status = app.config.get('DEBUG', False)
     return {'now': datetime.now(), 'is_admin': is_admin, 'debug_status': debug_status}
 
 # --- Routes ---
 
-@app.route('/setup_user') # Development only route
+@app.route('/setup_user') # Development only
 def setup_user():
-    """ Creates/updates a default admin user AND a standard user with sample data. """
+    # ... (setup_user function remains the same as previous full code) ...
     admin_username = "adminuser"; admin_password = "password123"
     user_username = "testuser"; user_password = "password123"
     messages = []
     try:
-        # Admin User Setup
         existing_admin = users_collection.find_one({'username': admin_username})
-        if not existing_admin:
-            hashed_pw = generate_password_hash(admin_password); user_data={'username':admin_username,'password':hashed_pw,'full_name':'Administrator','employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}; users_collection.insert_one(user_data); msg = f"Admin '{admin_username}' created."
-        else: msg = f"Admin '{admin_username}' exists.";
-        if existing_admin and not existing_admin.get('is_admin'): users_collection.update_one({'_id': existing_admin['_id']}, {'$set': {'is_admin': True}}); msg += " (Promoted to Admin)"
+        if not existing_admin: hashed_pw=generate_password_hash(admin_password); user_data={'username':admin_username,'password':hashed_pw,'full_name':'Administrator','employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}; users_collection.insert_one(user_data); msg=f"Admin '{admin_username}' created."
+        else: msg=f"Admin '{admin_username}' exists.";
+        if existing_admin and not existing_admin.get('is_admin'): users_collection.update_one({'_id':existing_admin['_id']},{'$set':{'is_admin':True}}); msg+=" (Promoted)"
         messages.append(msg)
-        # Standard User Setup
         existing_user = users_collection.find_one({'username': user_username})
-        if not existing_user:
-             hashed_pw = generate_password_hash(user_password); user_data={'username':user_username,'password':hashed_pw,'full_name':'Test User', 'employee_id':'EMP001','is_admin':False,'created_at':datetime.utcnow(), 'job_title':'Software Engineer', 'department':'Technology', 'location':'Remote', 'email':'test@example.com', 'mobile':'123-456-7890'}; users_collection.insert_one(user_data); msg = f"Standard user '{user_username}' created."
-        else: msg = f"Standard user '{user_username}' exists."
+        if not existing_user: hashed_pw=generate_password_hash(user_password); user_data={'username':user_username,'password':hashed_pw,'full_name':'Test User','employee_id':'EMP001','is_admin':False,'created_at':datetime.utcnow(), 'job_title':'Software Engineer','department':'Technology','location':'Remote','email':'test@example.com','mobile':'123-456-7890'}; users_collection.insert_one(user_data); msg=f"Std user '{user_username}' created."
+        else: msg=f"Std user '{user_username}' exists."
         messages.append(msg)
         final_message = " | ".join(messages); print(f"SETUP: {final_message}"); return final_message
     except Exception as e: print(f"Err setup_user: {e}"); return f"Error: {e}", 500
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """ Handles user login and session creation. """
+    # ... (login function remains the same) ...
     if 'user_id' in session: return redirect(url_for('admin_dashboard' if session.get('is_admin') else 'dashboard'))
     if request.method == 'POST':
         username=request.form.get('username','').strip(); password=request.form.get('password','')
@@ -201,6 +122,7 @@ def login():
         return render_template('login.html'), 401
     return render_template('login.html')
 
+
 @app.route('/logout')
 @login_required
 def logout(): user_name = session.get('username', 'User'); session.clear(); flash(f"{user_name} logged out.", "info"); return redirect(url_for('login'))
@@ -210,6 +132,7 @@ def logout(): user_name = session.get('username', 'User'); session.clear(); flas
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # ... (dashboard function remains the same) ...
     if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: flash("Session invalid.", "warning"); return redirect(url_for('login'))
@@ -219,6 +142,7 @@ def dashboard():
 @app.route('/clock_in', methods=['POST'])
 @login_required
 def clock_in():
+    # ... (clock_in function remains the same) ...
     user=get_current_user();
     if not user: return redirect(url_for('login'))
     if user.get('is_admin'): flash("Action NA for admins.", "warning"); return redirect(url_for('admin_dashboard'))
@@ -233,6 +157,7 @@ def clock_in():
 @app.route('/clock_out', methods=['POST'])
 @login_required
 def clock_out():
+    # ... (clock_out function remains the same) ...
     user = get_current_user();
     if not user: return redirect(url_for('login'))
     if user.get('is_admin'): flash("Action NA for admins.", "warning"); return redirect(url_for('admin_dashboard'))
@@ -248,6 +173,7 @@ def clock_out():
 @app.route('/attendance')
 @login_required
 def view_attendance():
+    # ... (view_attendance function remains the same) ...
     if session.get('is_admin'): flash("Admin attendance view TBD.", "info"); return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
@@ -261,6 +187,7 @@ def view_attendance():
 @app.route('/leaves')
 @login_required
 def view_leaves():
+    # ... (view_leaves function remains the same) ...
     if session.get('is_admin'): return redirect(url_for('admin_manage_leaves'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
@@ -271,6 +198,7 @@ def view_leaves():
 @app.route('/apply_leave', methods=['GET', 'POST'])
 @login_required
 def apply_leave():
+    # ... (apply_leave function remains the same) ...
     if session.get('is_admin'): flash("Admin leave differs.", "info"); return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
@@ -289,9 +217,11 @@ def apply_leave():
         except Exception as e: print(f"Err apply leave {user['_id']}: {e}"); flash("Error submitting request.", "danger"); return render_template('apply_leave.html',user=user,form_data=form_data), 500
     return render_template('apply_leave.html', user=user, form_data={})
 
+
 @app.route('/payslips')
 @login_required
 def view_payslips():
+    # ... (view_payslips function remains the same) ...
     if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
@@ -302,44 +232,30 @@ def view_payslips():
 @app.route('/download/payslip/<payslip_id>')
 @login_required
 def download_payslip(payslip_id):
-    """ Securely sends a payslip file for download if user owns it. """
-    if not PAYSLIP_STORAGE_PATH:
-         flash("Payslip download unavailable.", "danger"); print("Error: Download attempted but PAYSLIP_FOLDER not configured.")
-         return redirect(url_for('view_payslips'))
-
+    # ... (download_payslip function remains the same) ...
+    if not PAYSLIP_STORAGE_PATH: flash("Payslip download unavailable.", "danger"); print("Error: PAYSLIP_FOLDER not configured."); return redirect(url_for('view_payslips'))
     user = get_current_user();
     if not user: abort(401)
     safe_filename = None
-
     try:
-        payslip_object_id = ObjectId(payslip_id) # <<< Can raise InvalidId
+        payslip_object_id = ObjectId(payslip_id)
         payslip_doc = payslips_collection.find_one({'_id': payslip_object_id})
         if not payslip_doc: abort(404)
-        # SECURITY CHECK
         if payslip_doc.get('user_id') != user['_id']: abort(403)
-
         db_filename = payslip_doc.get('file_name')
         if not db_filename: flash("Payslip record has no file.", "warning"); return redirect(url_for('view_payslips'))
-
         safe_filename = secure_filename(db_filename)
         if safe_filename != db_filename: abort(400, "Invalid filename.")
-
-        print(f"Download request: User {user['_id']}, Payslip {payslip_id}, File '{safe_filename}'")
+        print(f"Download req: User {user['_id']}, Payslip {payslip_id}, File '{safe_filename}'")
         return send_from_directory(directory=PAYSLIP_STORAGE_PATH, path=safe_filename, as_attachment=True)
-
-    except InvalidId: # <<<--- Catch the specific imported error ---<<<
-         print(f"Download Attempt: Invalid Payslip ID format: {payslip_id}")
-         abort(404) # Treat as Not Found
-    except FileNotFoundError:
-        print(f"Download Error: File not found: {os.path.join(PAYSLIP_STORAGE_PATH, safe_filename if safe_filename else payslip_id)}")
-        flash(f"Payslip file not found. Contact support.", "danger"); return redirect(url_for('view_payslips'))
-    except Exception as e:
-        print(f"Error during payslip download {payslip_id} for user {user['_id']}: {e}")
-        flash("Error downloading payslip.", "danger"); return redirect(url_for('view_payslips'))
+    except InvalidId: print(f"Download Attempt: Invalid Payslip ID format: {payslip_id}"); abort(404)
+    except FileNotFoundError: print(f"Download Error: File not found: {os.path.join(PAYSLIP_STORAGE_PATH, safe_filename if safe_filename else payslip_id)}"); flash(f"Payslip file not found.", "danger"); return redirect(url_for('view_payslips'))
+    except Exception as e: print(f"Err payslip download {payslip_id} for {user['_id']}: {e}"); flash("Error downloading payslip.", "danger"); return redirect(url_for('view_payslips'))
 
 @app.route('/my_team')
 @login_required
 def my_team():
+    # ... (my_team function remains the same) ...
     if session.get('is_admin'): flash("Team view NA for admin.", "info"); return redirect(url_for('admin_dashboard'))
     user = get_current_user();
     if not user: return redirect(url_for('login'))
@@ -362,6 +278,7 @@ def my_team():
 @app.route('/organization/employees')
 @login_required
 def view_employee_directory():
+    # ... (view_employee_directory function remains the same) ...
     if session.get('is_admin'): return redirect(url_for('admin_manage_users'))
     user = get_current_user();
     if not user: return redirect(url_for('login'))
@@ -370,6 +287,19 @@ def view_employee_directory():
     except Exception as e: print(f"Error fetching employee directory: {e}"); flash("Could not load directory.", "danger")
     return render_template('org/employee_directory.html', user=user, employees=employees)
 
+# === NEW: User Profile Route ===
+@app.route('/profile')
+@login_required # User must be logged in
+def view_profile():
+    """ Displays the user's profile page. """
+    user = get_current_user()
+    if not user:
+        flash("Cannot display profile. Please log in again.", "warning")
+        return redirect(url_for('login'))
+    # Pass the full user object
+    return render_template('profile.html', user=user)
+# === END Profile Route ===
+
 # =========================
 # === ADMIN PORTAL ROUTES ===
 # =========================
@@ -377,6 +307,7 @@ def view_employee_directory():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
+    # ... (admin_dashboard function remains the same) ...
     user = get_current_user();
     if not user: flash("Admin session invalid.", "warning"); return redirect(url_for('login'))
     stats = {'user_count':'N/A', 'pending_leaves_count':'N/A', 'attendance_today':'N/A'}
@@ -391,6 +322,7 @@ def admin_dashboard():
 @app.route('/admin/users')
 @admin_required
 def admin_manage_users():
+    # ... (admin_manage_users function remains the same) ...
     user = get_current_user();
     if not user: return redirect(url_for('login'))
     try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1))
@@ -400,6 +332,7 @@ def admin_manage_users():
 @app.route('/admin/users/add', methods=['GET', 'POST'])
 @admin_required
 def admin_add_user():
+    # ... (admin_add_user function remains the same) ...
     user = get_current_user()
     if not user: return redirect(url_for('login'))
     form_data = request.form if request.method == 'POST' else {}
@@ -409,7 +342,6 @@ def admin_add_user():
         email=request.form.get('email','').strip() or None; mobile=request.form.get('mobile','').strip() or None
         job_title=request.form.get('job_title','').strip() or None; department=request.form.get('department','').strip() or None
         location=request.form.get('location','').strip() or None; is_admin=request.form.get('is_admin') == 'on'
-        # Validation
         required_fields={'Username':username,'Password':password,'Full Name':full_name,'Employee ID':employee_id}
         errors = {k:f"{k} required." for k,v in required_fields.items() if not v}
         if not errors:
@@ -418,7 +350,6 @@ def admin_add_user():
         if errors:
             for error_msg in errors.values(): flash(error_msg, 'danger')
             return render_template('admin/add_user.html', user=user, form_data=form_data), 400
-        # Process Valid Data
         try:
             hashed_password = generate_password_hash(password)
             new_user_data = {'username':username,'password':hashed_password,'full_name':full_name,'employee_id':employee_id,'email':email,'mobile':mobile,'job_title':job_title,'department':department,'location':location,'is_admin':is_admin,'created_at':datetime.utcnow()}
@@ -427,11 +358,12 @@ def admin_add_user():
             else: flash("DB issue adding employee.", 'danger')
         except Exception as e: print(f"Err adding user '{username}': {e}"); flash(f"Error: {e}", 'danger')
         return render_template('admin/add_user.html', user=user, form_data=form_data), 500
-    return render_template('admin/add_user.html', user=user, form_data={}) # GET
+    return render_template('admin/add_user.html', user=user, form_data={})
 
 @app.route('/admin/leaves')
 @admin_required
 def admin_manage_leaves():
+    # ... (admin_manage_leaves function remains the same) ...
     user = get_current_user();
     if not user: return redirect(url_for('login'))
     try:
@@ -447,6 +379,7 @@ def admin_manage_leaves():
 @app.route('/admin/leaves/action/<leave_id>/<action>', methods=['POST'])
 @admin_required
 def admin_action_leave(leave_id, action):
+    # ... (admin_action_leave function remains the same) ...
     if action not in ['approve','reject']: abort(400, "Invalid action.")
     new_status = 'Approved' if action == 'approve' else 'Rejected'
     admin_username = session.get('username','SYSTEM')
@@ -467,11 +400,13 @@ def admin_action_leave(leave_id, action):
 @app.route('/admin/settings')
 @admin_required
 def admin_settings():
+    # ... (admin_settings function remains the same) ...
     user = get_current_user();
     if not user: return redirect(url_for('login'))
     return render_template('admin/settings.html', user=user)
 
 # --- Error Handling ---
+# ... (Error handlers remain the same) ...
 @app.errorhandler(404)
 def page_not_found(e): user = get_current_user(); return render_template('errors/404.html', user=user), 404
 @app.errorhandler(500)
@@ -479,7 +414,9 @@ def internal_server_error(e): user = get_current_user(); print(f"Internal Server
 @app.errorhandler(403)
 def forbidden(e): user = get_current_user(); return render_template('errors/403.html', user=user), 403
 
+
 # --- Main Execution ---
+# ... (Main execution block remains the same) ...
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))
     is_debug = app.config['DEBUG']
