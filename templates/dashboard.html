@@ -1,3 +1,4 @@
+{# templates/dashboard.html - Standard User Dashboard #}
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 
@@ -13,38 +14,98 @@
 <div class="row">
     <!-- Left Column -->
     <div class="col-lg-5 col-md-6">
+
         <!-- Time Card -->
         <div class="card time-card mb-4">
              <style>
-                .time-card { background-color: #6366f1; color: white; }
-                .time-card .card-body { text-align: center; }
-                .time-card .current-time { font-size: 2.5rem; font-weight: bold; line-height: 1; letter-spacing: -1px; }
-                .time-card .current-date { font-size: 0.9rem; opacity: 0.9; margin-bottom: 1.5rem;}
-                .time-card .btn-clock-in { background-color: #10b981; border-color: #10b981; color: white;}
-                .time-card .btn-clock-out { background-color: #f59e0b; border-color: #f59e0b; color: white;}
-                .time-card .btn:hover { filter: brightness(110%); }
-                .time-card .attendance-actions small { color: rgba(255,255,255,0.8); font-size: 0.75rem;}
+                .time-card { background-color: #6366f1; color: white; border-radius: 0.5rem; } /* Indigo, more rounded */
+                .time-card .card-body { text-align: center; padding: 1.5rem; } /* More padding */
+                .time-card .time-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;} /* Header area */
+                .time-card .time-card-title { font-size: 0.9rem; font-weight: 500; opacity: 0.85; margin-bottom: 0;}
+                .time-card .btn-view-all { background-color: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 0.8rem; padding: 0.25rem 0.75rem; }
+                .time-card .btn-view-all:hover { background-color: rgba(255,255,255,0.25); }
+                .time-card .current-date { font-size: 0.95rem; font-weight: 500; opacity: 0.9; margin-bottom: 0.5rem;}
+                .time-card .current-time { font-size: 3rem; font-weight: bold; line-height: 1; letter-spacing: -1px; margin-bottom: 1.5rem; }
+                .time-card .current-time small { font-size: 1.2rem; margin-left: 5px; font-weight: normal; opacity: 0.9; }
+                /* Button styling */
+                .time-card .btn-web-clock { background-color: #ffffff; border-color: #ffffff; color: #4f46e5; /* Indigo dark text */ font-weight: 500; padding: 0.5rem 1.2rem; } /* Adjusted padding */
+                .time-card .btn-web-clock:hover { background-color: #f1f5f9; border-color: #f1f5f9; }
+                /* Ensure dropdown toggle has similar style */
+                .time-card .btn-group > .btn:not(:last-child):not(.dropdown-toggle) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+                .time-card .btn-group > .dropdown-toggle { border-top-left-radius: 0; border-bottom-left-radius: 0; background-color: white; color: #4f46e5; border-color: #ffffff;}
+                 .time-card .btn-group > .dropdown-toggle:hover { background-color: #f1f5f9; border-color: #f1f5f9; }
+
+                .time-card .attendance-status-text { margin-top: 1rem; font-size: 0.95rem; opacity: 0.95; }
+                .time-card .attendance-status-text i { margin-right: 0.3rem; }
+                .time-card .attendance-times { font-size: 0.8rem; color: rgba(255,255,255,0.8); margin-top: 0.25rem;}
              </style>
              <div class="card-body">
-                 <div class="d-flex justify-content-between align-items-center mb-2">
-                     <h6 class="card-title mb-0 text-white opacity-75">Time Today</h6>
-                     <a href="{{ url_for('view_attendance') }}" class="btn btn-sm btn-outline-light">View All</a>
+                 <div class="time-card-header">
+                     <h6 class="time-card-title">Time Today</h6>
+                     <a href="{{ url_for('view_attendance') }}" class="btn btn-sm btn-view-all">View All</a>
                  </div>
                 <p class="current-date">{{ now.strftime('%B %d, %Y %A') }}</p>
                 <div class="current-time mb-3" id="current-time-display">
-                    {{ now.strftime('%I:%M') }}<small style="font-size: 1rem; margin-left: 4px;">{{ now.strftime('%p') }}</small>
+                    {{ now.strftime('%-I:%M') }}<small>{{ now.strftime('%p') }}</small>
                 </div>
+
+                <!-- === MODIFIED Attendance Actions/Status === -->
                 <div class="attendance-actions">
                     {% if not attendance_status.clocked_in %}
-                        <form action="{{ url_for('clock_in') }}" method="POST" class="d-inline"> <button type="submit" class="btn btn-success btn-clock-in px-4"><i class="bi bi-box-arrow-in-right me-1"></i> Clock In</button> </form>
+                        {# Show Web Clock-In Button + Other Dropdown #}
+                        <div class="btn-group shadow-sm" role="group" aria-label="Clock In Actions">
+                            <form action="{{ url_for('clock_in') }}" method="POST" style="display: contents;">
+                                <button type="submit" class="btn btn-light btn-web-clock">
+                                    Web Clock-In
+                                </button>
+                            </form>
+                            <div class="btn-group" role="group">
+                                <button id="clockInOtherOptions" type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Other
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="clockInOtherOptions">
+                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-house-gear me-2"></i> Request Work From Home</a></li>
+                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-briefcase me-2"></i> Request On Duty</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item disabled" href="#"><i class="bi bi-calendar2-x me-2"></i> Regularize Attendance</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
                     {% elif not attendance_status.clocked_out %}
-                        <form action="{{ url_for('clock_out') }}" method="POST" class="d-inline"> <button type="submit" class="btn btn-warning btn-clock-out px-4"><i class="bi bi-box-arrow-left me-1"></i> Clock Out</button> </form>
-                         <p class="mt-2 mb-0"><small>Clocked In at: {{ attendance_status.clock_in_time.strftime('%H:%M') }}</small></p>
+                        {# Show Web Clock-Out Button + Other Dropdown #}
+                         <div class="btn-group shadow-sm" role="group" aria-label="Clock Out Actions">
+                            <form action="{{ url_for('clock_out') }}" method="POST" style="display: contents;">
+                                <button type="submit" class="btn btn-light btn-web-clock">
+                                    Web Clock-Out
+                                </button>
+                            </form>
+                             <div class="btn-group" role="group">
+                                <button id="clockOutOtherOptions" type="button" class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Other
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="clockOutOtherOptions">
+                                     <li><a class="dropdown-item disabled" href="#"><i class="bi bi-cup-hot me-2"></i> Add Break</a></li>
+                                     <li><hr class="dropdown-divider"></li>
+                                     <li><a class="dropdown-item disabled" href="#"><i class="bi bi-calendar2-x me-2"></i> Regularize Attendance</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                         <p class="attendance-times mt-2 mb-0">
+                             <small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }}</small>
+                         </p>
+
                     {% else %}
-                         <p class="text-white-50"><i class="bi bi-check-circle-fill"></i> Attendance complete.</p>
-                         <p class="mt-1 mb-0"><small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }} | Out: {{ attendance_status.clock_out_time.strftime('%H:%M') }}</small></p>
+                        {# Show Attendance Complete Status #}
+                         <p class="attendance-status-text text-white">
+                             <i class="bi bi-check-circle-fill"></i> Attendance complete.
+                         </p>
+                         <p class="attendance-times mb-0">
+                             <small>In: {{ attendance_status.clock_in_time.strftime('%H:%M') }} | Out: {{ attendance_status.clock_out_time.strftime('%H:%M') }}</small>
+                         </p>
                     {% endif %}
                 </div>
+                 <!-- === END MODIFIED === -->
             </div>
         </div>
 
@@ -79,7 +140,7 @@
 
     <!-- Right Column -->
     <div class="col-lg-7 col-md-6">
-        <!-- Announcements Card -->
+         <!-- Announcements Card -->
         <div class="card mb-4">
               <div class="card-header d-flex justify-content-between align-items-center">Announcements<a href="#" class="btn btn-sm btn-outline-secondary disabled">View All</a></div>
             <div class="card-body">
@@ -101,9 +162,9 @@
         <!-- Holidays Card -->
         <div class="card holiday-card mb-4">
              <style>
-                .holiday-card { background: linear-gradient(to right, #2dd4bfcc, #38bdf8cc), url('https://images.unsplash.com/photo-1543713870-93b4415436b8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60') center center/cover no-repeat; color: white; position: relative; overflow: hidden;}
-                .holiday-card .card-body { position: relative; z-index: 2; } .holiday-card::before { content: ''; position: absolute; inset: 0; background-color: rgba(0,0,0,0.1); z-index: 1;}
-                .holiday-card .holiday-icon { font-size: 4rem; opacity: 0.1; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); z-index: 1;}
+                .holiday-card { background: linear-gradient(to right, #2dd4bfcc, #38bdf8cc), url('https://images.unsplash.com/photo-1543713870-93b4415436b8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=60') center center/cover no-repeat; color: white; position: relative; overflow: hidden; border-radius: 0.5rem;}
+                .holiday-card .card-body { position: relative; z-index: 2; padding: 1.5rem;} .holiday-card::before { content: ''; position: absolute; inset: 0; background-color: rgba(0,0,0,0.1); z-index: 1;}
+                .holiday-card .holiday-icon { font-size: 4rem; opacity: 0.1; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); z-index: 1;}
              </style>
              <i class="bi bi-flag holiday-icon"></i>
             <div class="card-body">
@@ -111,26 +172,25 @@
                 <h5>Independence Day</h5> <p class="mb-0"><small>Fri, 15 Aug, {{ now.year + 1 }}</small></p>
             </div>
         </div>
-
     </div><!-- /Right Column -->
 </div><!-- /Row -->
 {% endblock %}
 
+
 {% block scripts %}
 <script>
-    // Simple Live Clock Update
+    // Live Clock Update Script
     function updateTime() {
         const timeDisplay = document.getElementById('current-time-display');
         if (timeDisplay) {
             const now = new Date();
-            const hours = String(now.getHours() % 12 || 12);
+            const hours = now.toLocaleTimeString(navigator.language, {hour: 'numeric', hour12: true}).split(' ')[0];
             const minutes = String(now.getMinutes()).padStart(2, '0');
-            const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
-            timeDisplay.innerHTML = `${hours}:${minutes}<small style="font-size: 1rem; margin-left: 4px;">${ampm}</small>`;
+            const ampm = now.toLocaleTimeString(navigator.language, {hour12: true}).split(' ')[1];
+            timeDisplay.innerHTML = `${hours}:${minutes}<small style="font-size: 1.2rem; margin-left: 5px; font-weight: normal; opacity: 0.9;">${ampm}</small>`;
         }
     }
     updateTime();
     const clockInterval = setInterval(updateTime, 1000);
-    // Consider making this less frequent (e.g., every minute) after the first second for efficiency
 </script>
 {% endblock %}

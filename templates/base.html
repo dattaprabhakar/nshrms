@@ -129,9 +129,8 @@
                         {# Highlight if on manage leaves or actioning a leave #}
                         <a class="nav-link {{ 'active' if 'admin' in request.endpoint and 'leave' in request.endpoint else '' }}" href="{{ url_for('admin_manage_leaves') }}"> <i class="bi bi-calendar2-check-fill"></i> Manage Leaves </a>
                     </li>
-                    {# Add more admin links here (e.g., Manage Attendance, Upload Payslips) #}
-                     <li class="nav-item">
-                        <a class="nav-link disabled placeholder-link" href="#"> <i class="bi bi-gear-fill"></i> Settings </a>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' else '' }}" href="{{ url_for('admin_settings') }}"> <i class="bi bi-gear-fill"></i> Settings </a>
                     </li>
                 {% endif %}
                 <!-- END ADMIN SECTION -->
@@ -150,11 +149,9 @@
              <div>
                  <nav aria-label="breadcrumb">
                     <ol class="breadcrumb bg-transparent p-0 m-0">
-                         {# Determine Base Title based on Admin/User #}
                          {% set base_url = url_for('admin_dashboard' if is_admin else 'dashboard') %}
                          {% set base_title = "Admin" if is_admin else "Home" %}
                         <li class="breadcrumb-item"><a href="{{ base_url }}">{{ base_title }}</a></li>
-
                         {# Determine Page Title #}
                         {% set page_title = request.endpoint | replace('admin_', '') | replace('_', ' ') | title %}
                         {% if request.endpoint == 'view_attendance' %} {% set page_title = 'Attendance' %}
@@ -162,6 +159,7 @@
                         {% elif request.endpoint == 'view_payslips' %} {% set page_title = 'My Pay' %}
                         {% elif 'admin' in request.endpoint and 'leave' in request.endpoint %} {% set page_title = 'Manage Leaves' %}
                         {% elif request.endpoint == 'admin_manage_users' %} {% set page_title = 'Manage Users' %}
+                        {% elif request.endpoint == 'admin_settings' %} {% set page_title = 'Settings' %} {# Added settings title #}
                         {% endif %}
                         {# Show page title only if not on the main dashboard for that user type #}
                         {% if request.endpoint != 'dashboard' and request.endpoint != 'admin_dashboard' %}

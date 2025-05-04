@@ -18,8 +18,6 @@ if not app.secret_key:
     print("CRITICAL: SECRET_KEY not found in environment variables. Application will not run securely.")
     exit()
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8) # Session timeout
-# Set debug status based on FLASK_ENV (Flask >= 2.3 handles this better)
-# For older Flask, you might need FLASK_DEBUG env var.
 app.config['DEBUG'] = os.environ.get('FLASK_ENV', 'production').lower() == 'development'
 
 # --- Database Setup ---
@@ -95,19 +93,16 @@ def get_today_attendance_status(user_id):
 # --- Context Processors ---
 @app.context_processor
 def inject_global_vars():
-    """ Injects common variables into all templates' contexts. """
     is_admin = False
     if 'user_id' in session: is_admin = session.get('is_admin', False)
-    # Pass debug status for conditional rendering in templates
     debug_status = app.config.get('DEBUG', False)
-    return {'now': datetime.now(), 'is_admin': is_admin, 'debug_status': debug_status} # <-- Added debug_status
+    return {'now': datetime.now(), 'is_admin': is_admin, 'debug_status': debug_status}
 
 # --- Routes ---
 
-@app.route('/setup_user') # Development only route
+@app.route('/setup_user') # Development only
 def setup_user():
-    """ Creates/updates a default admin user. """
-    admin_username = "adminuser"; admin_password = "password123" # Use secure defaults or env vars
+    admin_username = "adminuser"; admin_password = "password123"
     try:
         existing_user = users_collection.find_one({'username': admin_username})
         if not existing_user:
@@ -125,7 +120,6 @@ def setup_user():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """ Handles user login and session creation. """
     if 'user_id' in session: return redirect(url_for('admin_dashboard' if session.get('is_admin') else 'dashboard'))
     if request.method == 'POST':
         username = request.form.get('username','').strip(); password = request.form.get('password','')
@@ -141,13 +135,12 @@ def login():
                 return redirect(next_url or url_for('admin_dashboard' if session['is_admin'] else 'dashboard'))
             else: flash("Invalid credentials.", "danger")
         except Exception as e: print(f"Err login '{username}': {e}"); flash("Login error.", "danger")
-        return render_template('login.html'), 401 # Show login on failure
-    return render_template('login.html') # GET request
+        return render_template('login.html'), 401
+    return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
-    """ Clears session and redirects to login. """
     user_name = session.get('username', 'User'); session.clear()
     flash(f"{user_name} logged out.", "info"); return redirect(url_for('login'))
 
@@ -165,7 +158,7 @@ def dashboard():
 @app.route('/clock_in', methods=['POST'])
 @login_required
 def clock_in():
-    user = get_current_user();
+    user=get_current_user();
     if not user: return redirect(url_for('login'))
     if user.get('is_admin'): flash("Action NA for admins.", "warning"); return redirect(url_for('admin_dashboard'))
     user_id=user['_id']; attendance_status=get_today_attendance_status(user_id)
@@ -197,7 +190,7 @@ def clock_out():
 @app.route('/attendance')
 @login_required
 def view_attendance():
-    if session.get('is_admin'): return redirect(url_for('admin_dashboard')) # Or admin attendance view
+    if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
     try: user_attendance = list(attendance_collection.find({'user_id':user['_id']}).sort('clock_in',-1))
@@ -228,18 +221,17 @@ def apply_leave():
             if not all([start_date_str,end_date_str,leave_type,reason]): flash("All fields required.", "warning"); return render_template('apply_leave.html',user=user,form_data=form_data), 400
             start_date=datetime.strptime(start_date_str,'%Y-%m-%d').date(); end_date=datetime.strptime(end_date_str,'%Y-%m-%d').date()
             if end_date < start_date: flash("End date before start date.", "warning"); return render_template('apply_leave.html',user=user,form_data=form_data), 400
-            # TODO: Validate against balance/overlap
             leave_data = {'user_id':user['_id'],'username':user['username'],'start_date':start_date_str,'end_date':end_date_str,'leave_type':leave_type,'reason':reason,'status':'Pending','applied_date':datetime.now()}
             leaves_collection.insert_one(leave_data)
             flash("Leave request submitted!", "success"); return redirect(url_for('view_leaves'))
         except ValueError: flash("Invalid date format.", "danger"); return render_template('apply_leave.html',user=user,form_data=form_data), 400
         except Exception as e: print(f"Err apply leave {user['_id']}: {e}"); flash("Error submitting request.", "danger"); return render_template('apply_leave.html',user=user,form_data=form_data), 500
-    return render_template('apply_leave.html', user=user, form_data={}) # GET request
+    return render_template('apply_leave.html', user=user, form_data={})
 
 @app.route('/payslips')
 @login_required
 def view_payslips():
-    if session.get('is_admin'): return redirect(url_for('admin_dashboard')) # TODO: Admin payslip management
+    if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
     user=get_current_user();
     if not user: return redirect(url_for('login'))
     try: user_payslips = list(payslips_collection.find({'user_id':user['_id']}).sort([('year',-1),('month',-1)]))
@@ -265,7 +257,7 @@ def admin_dashboard():
 @app.route('/admin/users')
 @admin_required
 def admin_manage_users():
-    try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1)) # Exclude password
+    try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1))
     except Exception as e: print(f"Err admin fetch users: {e}"); flash("Could not load users.", "danger"); all_users=[]
     return render_template('admin/users.html', users=all_users)
 
@@ -293,7 +285,7 @@ def admin_action_leave(leave_id, action):
             {'_id':ObjectId(leave_id),'status':'Pending'},
             {'$set':{'status':new_status,'action_by':admin_username,'action_date':datetime.now()}},
             return_document=ReturnDocument.AFTER )
-        if updated_leave: flash(f"Leave for {updated_leave.get('username','user')} {new_status.lower()}.", "success") # TODO: Notify user
+        if updated_leave: flash(f"Leave for {updated_leave.get('username','user')} {new_status.lower()}.", "success")
         else:
             existing = leaves_collection.find_one({'_id':ObjectId(leave_id)})
             if existing: flash(f"Leave already actioned (Status: {existing.get('status','?')}).", "warning")
@@ -303,6 +295,12 @@ def admin_action_leave(leave_id, action):
     allowed_statuses=['All','Pending','Approved','Rejected']
     if status_filter not in allowed_statuses: status_filter='All'
     return redirect(url_for('admin_manage_leaves', status=status_filter))
+
+@app.route('/admin/settings')
+@admin_required
+def admin_settings():
+    """ Placeholder page for Admin Settings. """
+    return render_template('admin/settings.html')
 
 # --- Error Handling ---
 @app.errorhandler(404)
@@ -315,13 +313,11 @@ def forbidden(e): return render_template('errors/403.html'), 403
 # --- Main Execution ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5001))
-    # Use app.config['DEBUG'] which is set based on FLASK_ENV
-    is_debug = app.config['DEBUG']
+    is_debug = app.config['DEBUG'] # Use debug status from app config
     print(f"--- HRMS Portal ({'Development' if is_debug else 'Production'}) ---")
     if is_debug: print("WARNING: Debug mode is ON.")
     print(f" * Environment: {os.environ.get('FLASK_ENV', 'production')}")
     print(f" * Database: mongodb://.../{db.name}") # Mask URI in logs
     print(f" * Listening on http://0.0.0.0:{port}")
     print("--- Press CTRL+C to quit ---")
-    # app.run will use app.config['DEBUG'] automatically
-    app.run(host='0.0.0.0', port=port, threaded=is_debug) # threaded=True useful in dev
+    app.run(host='0.0.0.0', port=port, threaded=is_debug) # threaded=True only for dev
