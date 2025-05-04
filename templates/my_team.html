@@ -36,13 +36,13 @@
             <div class="card-body">
                 <h6 class="card-title text-muted mb-3">Who is off today</h6>
                 {% if team_stats.off_today_list %}
-                    <ul class="list-unstyled mb-0">
+                    <ul class="list-unstyled mb-0 small"> {# Made text smaller #}
                      {% for off_user in team_stats.off_today_list %}
                          <li>{{ off_user.username }} ({{ off_user.leave_type | title }})</li>
                      {% endfor %}
                     </ul>
                 {% else %}
-                    <div class="alert alert-warning py-2 small mb-0">No employee is off today.</div>
+                    <div class="alert alert-secondary py-2 small mb-0">No employee is off today.</div> {# Changed alert type #}
                 {% endif %}
             </div>
         </div>
@@ -52,11 +52,11 @@
             <div class="card-body">
                 <h6 class="card-title text-muted mb-3">Not in yet today</h6>
                  {% if team_stats.not_in_yet_list %}
-                     <div class="alert alert-danger py-2 small mb-0">
+                     <div class="alert alert-warning py-2 small mb-0"> {# Changed alert type #}
                         {{ team_stats.not_in_yet_list | join(', ') }}
                      </div>
                  {% else %}
-                    <div class="alert alert-warning py-2 small mb-0">All employees are already in or on leave.</div>
+                    <div class="alert alert-secondary py-2 small mb-0">All employees are already in or on leave.</div> {# Changed alert type #}
                  {% endif %}
             </div>
         </div>
@@ -109,70 +109,47 @@
 
 {# Team Calendar Section #}
 <div class="card team-calendar mb-4">
-    <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-2">
+    <div class="card-header bg-transparent border-bottom d-flex justify-content-between align-items-center py-2 flex-wrap gap-2">
         <h6 class="mb-0 fw-normal text-muted small">Team calendar</h6>
-         {# Month Navigation (Visual Placeholder) #}
         <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-chevron-left"></i></button>
-            <span class="mx-3 fw-bold">{{ calendar_data.month_name }} {{ calendar_data.year }}</span>
-            <button class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-chevron-right"></i></button>
+            <button class="btn btn-sm btn-outline-secondary disabled me-2"><i class="bi bi-chevron-left"></i></button>
+            <span class="fw-bold mx-1">{{ calendar_data.month_name }} {{ calendar_data.year }}</span>
+            <button class="btn btn-sm btn-outline-secondary disabled ms-2"><i class="bi bi-chevron-right"></i></button>
         </div>
-         {# User Selector (Visual Placeholder) #}
-         <div>
-             <img src="https://via.placeholder.com/30/B0BEC5/FFFFFF?text=P" alt="User" class="rounded-circle me-2" width="30" height="30">
-             <span class="small">Placeholder User</span>
-         </div>
+         <div> {# Removed user selector placeholder for now #} </div>
     </div>
     <div class="card-body">
         <table class="calendar-table">
-            <thead>
-                <tr>
-                    {% for day_name in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] %}
-                        <th>{{ day_name }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
+            <thead> <tr> {% for day_name in ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] %} <th>{{ day_name }}</th> {% endfor %} </tr> </thead>
             <tbody>
-                {% for week in calendar_data.weeks %}
-                <tr>
+                {% for week in calendar_data.weeks %} <tr>
                     {% for day in week %}
-                        {% if day == 0 %}
-                            <td class="empty-cell"></td> {# Day from previous/next month #}
+                        {% if day == 0 %} <td class="empty-cell"></td>
                         {% else %}
                             <td class="day-cell">
                                 <span class="day-number">{{ day }}</span>
-                                {# Placeholder Event Dots - Add logic later based on team member status #}
-                                {% if day == 1 or day == 10 or day == 11 or day == 24 or day == 25 %} {# Example weekly off #}
-                                    <div class="small text-muted"><span class="event-dot bg-warning"></span></div>
-                                {% elif day == 2 %} {# Example WFH #}
-                                     <div class="small text-muted"><span class="event-dot" style="background-color:#a855f7;"></span></div> {# Purple #}
-                                {% elif day == 3 %} {# Example On Duty #}
-                                     <div class="small text-muted"><span class="event-dot" style="background-color:#ec4899;"></span></div> {# Pink #}
-                                {% elif day == 4 %} {# Example Paid Leave #}
-                                      <div class="small text-muted"><span class="event-dot" style="background-color:#2dd4bf;"></span></div> {# Teal #}
-                                {% elif day == 17 or day == 18 %} {# Example Holiday #}
-                                       <div class="small text-muted"><span class="event-dot" style="background-color:#84cc16;"></span></div> {# Lime #}
-                                {% elif day == 31 %} {# Example Unpaid Leave #}
-                                     <div class="small text-muted"><span class="event-dot" style="background-color:#a1a1aa;"></span></div> {# Zinc #}
+                                {# Placeholder Event Dots #}
+                                {% if day in [1, 10, 11, 17, 18, 24, 25] %} <div class="small text-muted"><span class="event-dot bg-warning"></span></div>
+                                {% elif day == 2 %} <div class="small text-muted"><span class="event-dot" style="background-color:#a855f7;"></span></div>
+                                {% elif day == 3 %} <div class="small text-muted"><span class="event-dot" style="background-color:#ec4899;"></span></div>
+                                {% elif day == 4 %} <div class="small text-muted"><span class="event-dot" style="background-color:#2dd4bf;"></span></div>
+                                {% elif day == 31 %} <div class="small text-muted"><span class="event-dot" style="background-color:#a1a1aa;"></span></div>
                                 {% endif %}
                             </td>
                         {% endif %}
                     {% endfor %}
-                </tr>
-                {% endfor %}
+                </tr> {% endfor %}
             </tbody>
         </table>
-         {# Legend #}
          <div class="mt-3 small text-muted d-flex flex-wrap gap-3 justify-content-center">
-             <span><span class="legend-dot" style="background-color:#a855f7;"></span> Work from home</span>
+             <span><span class="legend-dot" style="background-color:#a855f7;"></span> WFH</span>
              <span><span class="legend-dot" style="background-color:#ec4899;"></span> On duty</span>
              <span><span class="legend-dot" style="background-color:#2dd4bf;"></span> Paid Leave</span>
-             <span><span class="legend-dot" style="background-color:#a1a1aa;"></span> Unpaid Leave</span>
-             <span><span class="legend-dot" style="background-color:#ef4444;"></span> Leave due to No Attendance</span> {# Red #}
-             <span><span class="legend-dot bg-warning"></span> Weekly off</span>
+             <span><span class="legend-dot" style="background-color:#a1a1aa;"></span> Unpaid</span>
+             <span><span class="legend-dot" style="background-color:#ef4444;"></span> No Attend</span>
+             <span><span class="legend-dot bg-warning"></span> W-OFF</span>
              <span><span class="legend-dot" style="background-color:#84cc16;"></span> Holiday</span>
-             <span><span class="legend-dot bg-info"></span> Someone on Leave</span>
-             {# Add more legend items as needed #}
+             <span><span class="legend-dot bg-info"></span> On Leave</span>
          </div>
     </div>
 </div>
@@ -180,22 +157,14 @@
 {# Peers Section (Placeholder) #}
 <div class="card">
      <div class="card-header bg-transparent border-bottom py-2">
-        <h6 class="mb-0 fw-normal text-muted small">Peers (10)</h6>
+        <h6 class="mb-0 fw-normal text-muted small">Peers (0)</h6> {# Placeholder count #}
     </div>
      <div class="card-body">
         <p class="text-muted text-center">Peers section placeholder.</p>
     </div>
 </div>
-
 {% endblock %}
 
-
 {% block scripts %}
-{# Add specific JS for this page later if needed for calendar interactions etc. #}
-<script>
-    // Simple Live Clock Update for Actions Widget (if kept on this page)
-    // function updateLiveClock() { ... }
-    // updateLiveClock();
-    // setInterval(updateLiveClock, 1000);
-</script>
+{# No specific JS needed for this placeholder page yet #}
 {% endblock %}

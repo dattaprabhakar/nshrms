@@ -1,5 +1,6 @@
 # hrms_portal/app.py
 import os
+import calendar # Added for team calendar
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
 from pymongo import MongoClient, ReturnDocument
 from bson import ObjectId
@@ -14,16 +15,14 @@ app = Flask(__name__)
 
 # --- Configuration ---
 app.secret_key = os.getenv("SECRET_KEY")
-if not app.secret_key:
-    print("CRITICAL: SECRET_KEY not found in environment variables. Application will not run securely.")
-    exit()
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8) # Session timeout
+if not app.secret_key: print("CRITICAL: SECRET_KEY not found."); exit()
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 app.config['DEBUG'] = os.environ.get('FLASK_ENV', 'production').lower() == 'development'
 
 # --- Database Setup ---
 try:
     mongo_uri = os.getenv("MONGO_URI")
-    if not mongo_uri: raise ValueError("MONGO_URI not found in environment variables.")
+    if not mongo_uri: raise ValueError("MONGO_URI not found.")
     client = MongoClient(mongo_uri)
     try:
         db_name = mongo_uri.split('/')[-1].split('?')[0]
@@ -39,8 +38,7 @@ try:
     leaves_collection.create_index("status", background=True)
     payslips_collection.create_index([("user_id", 1), ("year", -1), ("month", -1)], background=True)
     print(f"MongoDB connected successfully to database: '{db.name}'")
-    client.admin.command('ping')
-    print("MongoDB connection confirmed.")
+    client.admin.command('ping'); print("MongoDB connection confirmed.")
 except ValueError as ve: print(f"Config Error: {ve}"); exit()
 except Exception as e: print(f"CRITICAL: Error connecting to MongoDB - {e}"); exit()
 
@@ -49,43 +47,30 @@ except Exception as e: print(f"CRITICAL: Error connecting to MongoDB - {e}"); ex
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to access this page.", "warning")
-            session['next_url'] = request.url
-            return redirect(url_for('login'))
+        if 'user_id' not in session: flash("Please log in.", "warning"); session['next_url']=request.url; return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            flash("Please log in to access the admin area.", "warning")
-            session['next_url'] = request.url
-            return redirect(url_for('login'))
-        if not session.get('is_admin'):
-            print(f"Access Denied: User {session.get('username')} attempted admin route {request.path}")
-            flash("Admin access required.", "danger")
-            return redirect(url_for('dashboard'))
+        if 'user_id' not in session: flash("Please log in.", "warning"); session['next_url']=request.url; return redirect(url_for('login'))
+        if not session.get('is_admin'): print(f"Access Denied: User {session.get('username')} attempted admin route {request.path}"); flash("Admin access required.", "danger"); return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 def get_current_user():
-    user_id_str = session.get('user_id')
+    user_id_str = session.get('user_id');
     if not user_id_str: return None
-    try:
-        user = users_collection.find_one({'_id': ObjectId(user_id_str)})
-        if not user: session.clear(); return None
-        return user
+    try: user = users_collection.find_one({'_id': ObjectId(user_id_str)}); return user if user else session.clear() or None
     except Exception as e: print(f"Err fetch user {user_id_str}: {e}"); session.clear(); return None
 
 def get_today_attendance_status(user_id):
     if not isinstance(user_id, ObjectId): return {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
-    today_start = datetime.combine(date.today(), datetime.min.time())
-    today_end = datetime.combine(date.today(), datetime.max.time())
+    today_start=datetime.combine(date.today(),datetime.min.time()); today_end=datetime.combine(date.today(),datetime.max.time())
     status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
     try:
-        record = attendance_collection.find_one({'user_id': user_id, 'clock_in': {'$gte': today_start, '$lt': today_end}}, sort=[('clock_in', -1)])
+        record = attendance_collection.find_one({'user_id': user_id, 'clock_in': {'$gte':today_start, '$lt':today_end}}, sort=[('clock_in',-1)])
         if record: status.update({"clocked_in":True,"clock_in_time":record.get('clock_in'), "record_id":record.get('_id'), "clocked_out":bool(record.get('clock_out')), "clock_out_time":record.get('clock_out')})
     except Exception as e: print(f"Err fetch att status {user_id}: {e}")
     return status
@@ -93,7 +78,7 @@ def get_today_attendance_status(user_id):
 # --- Context Processors ---
 @app.context_processor
 def inject_global_vars():
-    is_admin = False
+    is_admin = False;
     if 'user_id' in session: is_admin = session.get('is_admin', False)
     debug_status = app.config.get('DEBUG', False)
     return {'now': datetime.now(), 'is_admin': is_admin, 'debug_status': debug_status}
@@ -106,15 +91,9 @@ def setup_user():
     try:
         existing_user = users_collection.find_one({'username': admin_username})
         if not existing_user:
-            hashed_password = generate_password_hash(admin_password)
-            user_data = {'username':admin_username,'password':hashed_password,'full_name':'Administrator', 'employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}
-            users_collection.insert_one(user_data)
-            msg = f"Admin user '{admin_username}' created. PW: '{admin_password}'."
-        else:
-            if not existing_user.get('is_admin'):
-                 users_collection.update_one({'_id': existing_user['_id']}, {'$set': {'is_admin': True}})
-                 msg = f"User '{admin_username}' exists. Updated to admin."
-            else: msg = f"Admin user '{admin_username}' already exists."
+            hashed_password = generate_password_hash(admin_password); user_data={'username':admin_username,'password':hashed_password,'full_name':'Administrator','employee_id':'ADM001','is_admin':True,'created_at':datetime.utcnow()}; users_collection.insert_one(user_data); msg = f"Admin user '{admin_username}' created. PW: '{admin_password}'."
+        else: msg = f"Admin user '{admin_username}' already exists.";
+        if existing_user and not existing_user.get('is_admin'): users_collection.update_one({'_id': existing_user['_id']}, {'$set': {'is_admin': True}}); msg = f"User '{admin_username}' exists. Updated to admin."
         print(f"SETUP: {msg}"); return msg
     except Exception as e: print(f"Err setup_user: {e}"); return f"Error: {e}", 500
 
@@ -122,17 +101,14 @@ def setup_user():
 def login():
     if 'user_id' in session: return redirect(url_for('admin_dashboard' if session.get('is_admin') else 'dashboard'))
     if request.method == 'POST':
-        username = request.form.get('username','').strip(); password = request.form.get('password','')
-        if not username or not password: flash("Username and password required.", "warning"); return render_template('login.html'), 400
+        username=request.form.get('username','').strip(); password=request.form.get('password','')
+        if not username or not password: flash("Username/password required.", "warning"); return render_template('login.html'), 400
         try:
             user = users_collection.find_one({'username': username})
             if user and check_password_hash(user['password'], password):
-                session.permanent = True
-                session['user_id'] = str(user['_id']); session['username'] = user['username']
-                session['is_admin'] = user.get('is_admin', False)
+                session.permanent = True; session['user_id']=str(user['_id']); session['username']=user['username']; session['is_admin']=user.get('is_admin',False)
                 flash(f"Welcome, {user.get('full_name', user['username'])}!", "success")
-                next_url = session.pop('next_url', None)
-                return redirect(next_url or url_for('admin_dashboard' if session['is_admin'] else 'dashboard'))
+                next_url = session.pop('next_url', None); return redirect(next_url or url_for('admin_dashboard' if session['is_admin'] else 'dashboard'))
             else: flash("Invalid credentials.", "danger")
         except Exception as e: print(f"Err login '{username}': {e}"); flash("Login error.", "danger")
         return render_template('login.html'), 401
@@ -140,9 +116,7 @@ def login():
 
 @app.route('/logout')
 @login_required
-def logout():
-    user_name = session.get('username', 'User'); session.clear()
-    flash(f"{user_name} logged out.", "info"); return redirect(url_for('login'))
+def logout(): user_name = session.get('username', 'User'); session.clear(); flash(f"{user_name} logged out.", "info"); return redirect(url_for('login'))
 
 # --- Standard User Routes ---
 @app.route('/')
@@ -150,7 +124,7 @@ def logout():
 @login_required
 def dashboard():
     if session.get('is_admin'): return redirect(url_for('admin_dashboard'))
-    user = get_current_user();
+    user=get_current_user();
     if not user: flash("Session invalid.", "warning"); return redirect(url_for('login'))
     attendance_status = get_today_attendance_status(user['_id'])
     return render_template('dashboard.html', user=user, attendance_status=attendance_status)
@@ -179,59 +153,23 @@ def clock_out():
     if not attendance_status["clocked_in"]: flash("Clock in first.", "warning")
     elif attendance_status["clocked_out"]: flash("Already clocked out.", "warning")
     elif attendance_status["record_id"]:
-        try:
-            result = attendance_collection.update_one({'_id':attendance_status["record_id"],'clock_out':None},{'$set':{'clock_out':datetime.now()}})
-            if result.modified_count > 0: flash("Clocked out!", "success")
-            else: flash("Already clocked out?", "warning")
+        try: result=attendance_collection.update_one({'_id':attendance_status["record_id"],'clock_out':None},{'$set':{'clock_out':datetime.now()}}); flash("Clocked out!" if result.modified_count>0 else "Already clocked out?", "success" if result.modified_count>0 else "warning")
         except Exception as e: print(f"Err clock-out {user_id} rec {attendance_status['record_id']}: {e}"); flash("Clock-out error.", "danger")
     else: flash("Cannot find clock-in record.", "danger")
     return redirect(url_for('dashboard'))
 
-# ================================================
-# === MODIFIED view_attendance Route START ===
-# ================================================
 @app.route('/attendance')
 @login_required
 def view_attendance():
-    """ Displays the detailed attendance page for the logged-in user. """
-    if session.get('is_admin'):
-        flash("Admin attendance overview not yet implemented.", "info")
-        return redirect(url_for('admin_dashboard'))
-
-    user = get_current_user()
-    if not user: return redirect(url_for('login')) # Should be caught by decorator
-
-    # Initialize with default values
-    user_attendance = []
-    # Ensure the default status is a dictionary with expected keys
-    attendance_status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
-
+    if session.get('is_admin'): flash("Admin attendance view TBD.", "info"); return redirect(url_for('admin_dashboard'))
+    user=get_current_user();
+    if not user: return redirect(url_for('login'))
+    user_attendance = []; attendance_status = {"clocked_in":False,"clocked_out":False,"clock_in_time":None,"clock_out_time":None,"record_id":None}
     try:
-        # Fetch historical records
-        user_attendance = list(attendance_collection.find(
-            {'user_id': user['_id']}
-        ).sort('clock_in', -1))
-
-        # Fetch today's status for the Actions widget
-        # This will overwrite the default if successful
-        attendance_status = get_today_attendance_status(user['_id'])
-
-    except Exception as e:
-        print(f"Error fetching user attendance data for {user['_id']}: {e}")
-        flash("Error fetching attendance data.", "danger")
-        # Keep user_attendance as empty list
-        # attendance_status retains its default dictionary value if error occurs here
-
-    # **** THIS IS THE CRITICAL LINE (Ensured presence) ****
-    # Ensure 'attendance_status' is explicitly passed to the template
-    return render_template('attendance.html',
-                           user=user,
-                           attendance_records=user_attendance,
-                           attendance_status=attendance_status) # <<< PASSING attendance_status HERE
-# ================================================
-# === MODIFIED view_attendance Route END ===
-# ================================================
-
+        user_attendance = list(attendance_collection.find({'user_id':user['_id']}).sort('clock_in',-1))
+        attendance_status = get_today_attendance_status(user['_id']) # Fetch for Actions widget
+    except Exception as e: print(f"Err fetch user att data {user['_id']}: {e}"); flash("Error fetching attendance data.", "danger")
+    return render_template('attendance.html', user=user, attendance_records=user_attendance, attendance_status=attendance_status) # Pass status
 
 @app.route('/leaves')
 @login_required
@@ -274,6 +212,68 @@ def view_payslips():
     except Exception as e: print(f"Err fetch user payslips {user['_id']}: {e}"); flash("Error fetching payslips.", "danger"); user_payslips=[]
     return render_template('payslips.html', user=user, payslips=user_payslips)
 
+# =============================
+# === NEW My Team Route START ===
+# =============================
+@app.route('/my_team')
+@login_required
+def my_team():
+    """ Displays the 'My Team' overview page for standard users. """
+    if session.get('is_admin'):
+        flash("Team view not applicable for admin account.", "info")
+        return redirect(url_for('admin_dashboard'))
+
+    user = get_current_user()
+    if not user: return redirect(url_for('login'))
+
+    # Initialize data structures
+    team_stats = {"off_today_list": [], "not_in_yet_list": [], "on_time_count": 0, "late_arrivals_count": 0, "wfh_od_count": 0, "remote_clockins_count": 0}
+    current_date = date.today()
+    calendar_data = {"year": current_date.year, "month": current_date.month, "month_name": current_date.strftime("%B"), "weeks": []}
+
+    try:
+        today_str = current_date.strftime('%Y-%m-%d')
+        current_user_id = user['_id']
+
+        # 1. Find users on approved leave today (excluding current user)
+        users_off_today = list(leaves_collection.find({
+            "status": "Approved", "start_date": {"$lte": today_str}, "end_date": {"$gte": today_str},
+            "user_id": {"$ne": current_user_id} }, {"username": 1, "leave_type": 1, "_id": 1})) # Include _id
+        team_stats["off_today_list"] = users_off_today
+        off_today_ids = {u['_id'] for u in users_off_today} # Set of IDs for quick lookup
+
+        # 2. Find users NOT clocked in yet today (who are not on leave)
+        today_start=datetime.combine(current_date,datetime.min.time()); today_end=datetime.combine(current_date,datetime.max.time())
+        clocked_in_ids = set(attendance_collection.distinct('user_id', {'clock_in': {'$gte':today_start, '$lt':today_end}}))
+
+        # Assuming 'team' means all non-admin users except self for now
+        all_team_users = list(users_collection.find({"_id": {"$ne": current_user_id}, "is_admin": {"$ne": True}}, {"_id": 1, "username": 1}))
+
+        not_in_yet_list = []
+        for team_user in all_team_users:
+            if team_user['_id'] not in clocked_in_ids and team_user['_id'] not in off_today_ids:
+                 not_in_yet_list.append(team_user['username']) # Get username
+        team_stats["not_in_yet_list"] = not_in_yet_list
+
+        # 3. Generate Calendar Data (structure only for now)
+        calendar_data["weeks"] = calendar.monthcalendar(calendar_data["year"], calendar_data["month"])
+
+        # 4. Placeholder Stats (Implement actual logic later)
+        team_stats['on_time_count'] = len(clocked_in_ids) # Simplistic: everyone clocked in is on time
+        # Add logic for late arrivals based on shift times
+        # Add logic for WFH/OD based on leave types or other flags
+        # Add logic for remote clockins based on IP/metadata later
+
+    except Exception as e:
+        print(f"Error fetching My Team data for user {user['_id']}: {e}")
+        flash("Could not load some 'My Team' data.", "warning")
+
+    return render_template('my_team.html', user=user, team_stats=team_stats, calendar_data=calendar_data)
+# ===========================
+# === NEW My Team Route END ===
+# ===========================
+
+
 # =========================
 # === ADMIN PORTAL ROUTES ===
 # =========================
@@ -281,7 +281,7 @@ def view_payslips():
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
-    user = get_current_user() # Get logged-in admin user
+    user = get_current_user();
     if not user: flash("Admin session invalid.", "warning"); return redirect(url_for('login'))
     stats = {'user_count':'N/A', 'pending_leaves_count':'N/A', 'attendance_today':'N/A'}
     try:
@@ -290,12 +290,12 @@ def admin_dashboard():
         today_start=datetime.combine(date.today(),datetime.min.time()); today_end=datetime.combine(date.today(),datetime.max.time())
         stats['attendance_today'] = len(attendance_collection.distinct('user_id', {'clock_in':{'$gte':today_start,'$lt':today_end}}))
     except Exception as e: print(f"Err admin dashboard stats: {e}"); flash("Could not load stats.", "warning")
-    return render_template('admin/dashboard.html', user=user, **stats) # Pass user AND stats
+    return render_template('admin/dashboard.html', user=user, **stats)
 
 @app.route('/admin/users')
 @admin_required
 def admin_manage_users():
-    user = get_current_user()
+    user = get_current_user();
     if not user: return redirect(url_for('login'))
     try: all_users = list(users_collection.find({}, {'password':0}).sort('username',1))
     except Exception as e: print(f"Err admin fetch users: {e}"); flash("Could not load users.", "danger"); all_users=[]
@@ -304,7 +304,7 @@ def admin_manage_users():
 @app.route('/admin/leaves')
 @admin_required
 def admin_manage_leaves():
-    user = get_current_user()
+    user = get_current_user();
     if not user: return redirect(url_for('login'))
     try:
         filter_status = request.args.get('status','All')
@@ -341,7 +341,7 @@ def admin_action_leave(leave_id, action):
 @app.route('/admin/settings')
 @admin_required
 def admin_settings():
-    user = get_current_user()
+    user = get_current_user();
     if not user: return redirect(url_for('login'))
     return render_template('admin/settings.html', user=user)
 

@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        :root { /* CSS Variables for easy theming */
+        :root { /* CSS Variables */
             --sidebar-width: 260px; --sidebar-bg: #1e293b; --sidebar-link-color: #cbd5e1;
             --sidebar-link-hover-bg: #334155; --sidebar-link-active-bg: #0ea5e9;
             --sidebar-link-active-color: #ffffff; --dropdown-bg: #293548;
@@ -16,20 +16,17 @@
             --text-muted-color: #64748b;
         }
         body { background-color: var(--main-bg); display: flex; }
-        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 0; /* Remove top padding */ overflow-y: auto; transition: width 0.3s ease; z-index: 1030; display: flex; flex-direction: column; }
-        #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; border-left: 3px solid transparent; /* For active indicator */ transition: background-color 0.2s ease, border-left-color 0.2s ease; }
+        #sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; background-color: var(--sidebar-bg); padding-top: 0; overflow-y: auto; transition: width 0.3s ease; z-index: 1030; display: flex; flex-direction: column; }
+        #sidebar .nav-link { color: var(--sidebar-link-color); padding: 0.75rem 1.5rem; display: flex; align-items: center; font-size: 0.95rem; white-space: nowrap; border-left: 3px solid transparent; transition: background-color 0.2s ease, border-left-color 0.2s ease; }
         #sidebar .nav-link i { margin-right: 0.8rem; font-size: 1.2rem; width: 25px; text-align: center; }
         #sidebar .nav-link:hover { background-color: var(--sidebar-link-hover-bg); color: #ffffff; border-left-color: var(--sidebar-link-hover-bg); }
-        /* Active link styling */
-        #sidebar .nav-link.active { background-color: var(--sidebar-link-hover-bg); color: var(--sidebar-link-active-color); font-weight: 500; border-left-color: var(--sidebar-link-active-bg); /* Active indicator */ }
-        /* Active state for dropdown toggle when its child is active */
+        #sidebar .nav-link.active { background-color: var(--sidebar-link-hover-bg); color: var(--sidebar-link-active-color); font-weight: 500; border-left-color: var(--sidebar-link-active-bg); }
         #sidebar .nav-item.dropdown .nav-link.active-parent { background-color: var(--sidebar-link-hover-bg); color: var(--sidebar-link-active-color); border-left-color: var(--sidebar-link-hover-bg); }
-
         #sidebar .sidebar-heading { padding: 0.5rem 1.5rem; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-top: 1rem; }
-        #sidebar .logo-area { padding: 1rem 1.5rem; /* Adjusted padding */ color: #ffffff; font-size: 1.5rem; font-weight: bold; text-align: center; border-bottom: 1px solid #334155; margin-bottom: 1rem; flex-shrink: 0; background-color: rgba(0,0,0,0.1); /* Slight darker bg for logo */ }
+        #sidebar .logo-area { padding: 1rem 1.5rem; color: #ffffff; font-size: 1.5rem; font-weight: bold; text-align: center; border-bottom: 1px solid #334155; margin-bottom: 1rem; flex-shrink: 0; background-color: rgba(0,0,0,0.1); }
         #sidebar .logo-area i { margin-right: 0.5rem; }
-        #sidebar .sidebar-menu { flex-grow: 1; overflow-y: auto; padding-bottom: 1rem; /* Space at bottom */}
-        #sidebar .sidebar-footer { flex-shrink: 0; padding: 1rem 0; text-align: center; border-top: 1px solid #334155; margin-top: auto; /* Push footer down */ }
+        #sidebar .sidebar-menu { flex-grow: 1; overflow-y: auto; padding-bottom: 1rem; }
+        #sidebar .sidebar-footer { flex-shrink: 0; padding: 1rem 0; text-align: center; border-top: 1px solid #334155; margin-top: auto; }
         #sidebar .sidebar-footer small { color: var(--sidebar-link-color); opacity: 0.6; font-size: 0.75rem;}
         /* Dropdown */
         #sidebar .dropdown-toggle::after { display: none; }
@@ -69,7 +66,7 @@
 
         <div class="sidebar-menu">
             <ul class="nav flex-column">
-                <!-- Home Link (Points to correct dashboard) -->
+                <!-- Home Link -->
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if request.endpoint == ('admin_dashboard' if is_admin else 'dashboard') else '' }}"
                        href="{{ url_for('admin_dashboard' if is_admin else 'dashboard') }}">
@@ -77,7 +74,7 @@
                     </a>
                 </li>
 
-                <!-- Standard User Links (Hidden for Admins) -->
+                <!-- Standard User Links -->
                 {% if not is_admin %}
                 <li class="nav-item dropdown">
                     {% set me_active = request.endpoint in ['view_attendance', 'view_leaves', 'apply_leave'] %}
@@ -93,7 +90,14 @@
                 </li>
                  <li class="nav-item"> <a class="nav-link disabled" href="#"><i class="bi bi-inbox-fill"></i> Inbox</a> </li>
                  <li class="sidebar-heading">Work</li>
-                 <li class="nav-item"> <a class="nav-link disabled" href="#"><i class="bi bi-people-fill"></i> My Team</a> </li>
+                 {# --- MODIFIED My Team Link --- #}
+                 <li class="nav-item">
+                    <a class="nav-link {{ 'active' if request.endpoint == 'my_team' else '' }}"
+                       href="{{ url_for('my_team') }}">
+                        <i class="bi bi-people-fill"></i> My Team
+                    </a>
+                </li>
+                 {# --- END MODIFIED Link --- #}
                 <li class="sidebar-heading">Finance</li>
                 <li class="nav-item dropdown">
                     {% set finance_active = request.endpoint == 'view_payslips' %}
@@ -119,27 +123,16 @@
                 <!-- ADMIN SECTION -->
                 {% if is_admin %}
                     <li class="sidebar-heading">Admin Portal</li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}"> <i class="bi bi-speedometer2"></i> Admin Dashboard </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ 'active' if request.endpoint == 'admin_manage_users' else '' }}" href="{{ url_for('admin_manage_users') }}"> <i class="bi bi-people-fill"></i> Manage Users </a>
-                    </li>
-                    <li class="nav-item">
-                        {# Highlight if on manage leaves or actioning a leave #}
-                        <a class="nav-link {{ 'active' if 'admin' in request.endpoint and 'leave' in request.endpoint else '' }}" href="{{ url_for('admin_manage_leaves') }}"> <i class="bi bi-calendar2-check-fill"></i> Manage Leaves </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' else '' }}" href="{{ url_for('admin_settings') }}"> <i class="bi bi-gear-fill"></i> Settings </a>
-                    </li>
+                    <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_dashboard' else '' }}" href="{{ url_for('admin_dashboard') }}"> <i class="bi bi-speedometer2"></i> Admin Dashboard </a> </li>
+                    <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_manage_users' else '' }}" href="{{ url_for('admin_manage_users') }}"> <i class="bi bi-people-fill"></i> Manage Users </a> </li>
+                    <li class="nav-item"> <a class="nav-link {{ 'active' if 'admin' in request.endpoint and 'leave' in request.endpoint else '' }}" href="{{ url_for('admin_manage_leaves') }}"> <i class="bi bi-calendar2-check-fill"></i> Manage Leaves </a> </li>
+                    <li class="nav-item"> <a class="nav-link {{ 'active' if request.endpoint == 'admin_settings' else '' }}" href="{{ url_for('admin_settings') }}"> <i class="bi bi-gear-fill"></i> Settings </a> </li>
                 {% endif %}
                 <!-- END ADMIN SECTION -->
             </ul>
         </div> <!-- /sidebar-menu -->
 
-         <div class="sidebar-footer">
-             <small>© {{ now.year }} Your Company</small>
-         </div>
+         <div class="sidebar-footer"> <small>© {{ now.year }} Your Company</small> </div>
     </div> <!-- /sidebar -->
 
     <!-- Main Content Area -->
@@ -153,54 +146,41 @@
                          {% set base_title = "Admin" if is_admin else "Home" %}
                         <li class="breadcrumb-item"><a href="{{ base_url }}">{{ base_title }}</a></li>
                         {# Determine Page Title #}
-                        {% set page_title = request.endpoint | replace('admin_', '') | replace('_', ' ') | title %}
-                        {% if request.endpoint == 'view_attendance' %} {% set page_title = 'Attendance' %}
-                        {% elif 'leave' in request.endpoint and 'admin' not in request.endpoint %} {% set page_title = 'Leave' %}
+                        {% set page_title = request.endpoint | replace('admin_', '') | replace('view_', '') | replace('_', ' ') | title %}
+                        {% if request.endpoint == 'my_team' %} {% set page_title = 'My Team' %} {# Specific override #}
                         {% elif request.endpoint == 'view_payslips' %} {% set page_title = 'My Pay' %}
                         {% elif 'admin' in request.endpoint and 'leave' in request.endpoint %} {% set page_title = 'Manage Leaves' %}
                         {% elif request.endpoint == 'admin_manage_users' %} {% set page_title = 'Manage Users' %}
-                        {% elif request.endpoint == 'admin_settings' %} {% set page_title = 'Settings' %} {# Added settings title #}
+                        {% elif request.endpoint == 'admin_settings' %} {% set page_title = 'Settings' %}
                         {% endif %}
-                        {# Show page title only if not on the main dashboard for that user type #}
-                        {% if request.endpoint != 'dashboard' and request.endpoint != 'admin_dashboard' %}
-                         <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
-                        {% endif %}
+                        {# Show page title only if not on the main dashboard #}
+                        {% if request.endpoint != 'dashboard' and request.endpoint != 'admin_dashboard' %} <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li> {% endif %}
                     </ol>
                 </nav>
              </div>
-             <div class="user-info d-flex align-items-center"> {# Use flex for alignment #}
+             <div class="user-info d-flex align-items-center">
                  {% if session.user_id %}
                     <span class="me-3 text-nowrap"><i class="bi bi-person-circle me-1"></i> {{ session.username }} {% if is_admin %}<span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle rounded-pill ms-1 small">Admin</span>{% endif %}</span>
                     <a href="{{ url_for('logout') }}" title="Logout" class="text-danger text-nowrap"> <i class="bi bi-box-arrow-right"></i> Logout </a>
-                 {% else %}
-                     <a href="{{ url_for('login') }}"> <i class="bi bi-box-arrow-in-right"></i> Login </a>
+                 {% else %} <a href="{{ url_for('login') }}"> <i class="bi bi-box-arrow-in-right"></i> Login </a>
                  {% endif %}
              </div>
-         </div>
+         </div> <!-- /top-bar -->
 
         <!-- Content Wrapper with Padding -->
         <div class="content-wrapper">
             <!-- Flash Messages Container -->
-             <div id="flash-message-container" style="position: relative; z-index: 1050;"> {# Ensure flash messages appear above some content #}
+             <div id="flash-message-container" style="position: relative; z-index: 1050;">
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            {# Map simple categories to bootstrap types #}
-                            {% set alert_type = category if category in ['primary', 'secondary', 'success', 'danger', 'warning', 'info', 'light', 'dark'] else 'info' %}
-                            <div class="alert alert-{{ alert_type }} alert-dismissible fade show mb-4 shadow-sm" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
+                    {% if messages %} {% for category, message in messages %}
+                        {% set alert_type = category if category in ['primary','secondary','success','danger','warning','info','light','dark'] else 'info' %}
+                        <div class="alert alert-{{ alert_type }} alert-dismissible fade show mb-4 shadow-sm" role="alert"> {{ message }} <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button> </div>
+                    {% endfor %} {% endif %}
                 {% endwith %}
-             </div>
+             </div> <!-- /flash-message-container -->
             <!-- Page Specific Content -->
-            <main>
-                {% block content %}{% endblock %}
-            </main>
+            <main> {% block content %}{% endblock %} </main>
         </div> {# End content-wrapper #}
-
     </div> {# End main-content #}
 
     <!-- Bootstrap JS Bundle -->
