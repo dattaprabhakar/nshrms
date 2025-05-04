@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people-fill me-2"></i>Manage Users</span>
+        {# Add button to 'Add User' later #}
+        <a href="#" class="btn btn-sm btn-primary disabled"><i class="bi bi-plus-circle me-1"></i> Add User</a>
+    </div>
+    <div class="card-body">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm caption-top">
+                <caption>List of all registered users in the system.</caption>
+                <thead class="table-light">
+                    <tr>
+                        <th>Username</th>
+                        <th>Full Name</th>
+                        <th>Employee ID</th>
+                        <th>Is Admin?</th>
+                        <th>Created At</th>
+                        <th>Actions</th> {# Actions column #}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.full_name | default('N/A') }}</td>
+                        <td>{{ u.employee_id | default('N/A') }}</td>
+                        <td>
+                            {% if u.get('is_admin') %}
+                                <span class="badge bg-success">Yes</span>
+                            {% else %}
+                                <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else 'N/A' }}</td>
+                        <td>
+                            {# Add Edit/Disable/Set Admin buttons later #}
+                            <button class="btn btn-sm btn-outline-secondary disabled" title="Edit User"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-outline-danger disabled" title="Disable User"><i class="bi bi-person-x"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary">No users found. Consider running the <a href="{{ url_for('setup_user')}}">setup user</a> script.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Manage Leave Requests{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"> {# Flex wrap for smaller screens #}
+         <span><i class="bi bi-calendar2-check-fill me-2"></i>Manage Leave Requests</span>
+         {# Filter controls #}
+         <div>
+            <span class="me-2 small d-none d-md-inline">Filter by status:</span> {# Hide label on small screens #}
+            <div class="btn-group btn-group-sm" role="group" aria-label="Leave Status Filter">
+                <a href="{{ url_for('admin_manage_leaves', status='All') }}" class="btn btn-outline-secondary {{ 'active' if current_filter == 'All' else '' }}">All</a>
+                <a href="{{ url_for('admin_manage_leaves', status='Pending') }}" class="btn btn-outline-warning {{ 'active' if current_filter == 'Pending' else '' }}">Pending</a>
+                <a href="{{ url_for('admin_manage_leaves', status='Approved') }}" class="btn btn-outline-success {{ 'active' if current_filter == 'Approved' else '' }}">Approved</a>
+                <a href="{{ url_for('admin_manage_leaves', status='Rejected') }}" class="btn btn-outline-danger {{ 'active' if current_filter == 'Rejected' else '' }}">Rejected</a>
+            </div>
+         </div>
+    </div>
+    <div class="card-body">
+        {% if leaves %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm align-middle caption-top"> {# align-middle for button vertical centering #}
+                 <caption>Leave requests based on the selected filter. Status: {{ current_filter }}</caption>
+                 <thead class="table-light">
+                    <tr>
+                        <th>User</th>
+                        <th>Applied</th>
+                        <th>Type</th>
+                        <th>Dates</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Action</th> {# Actions Column #}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for leave in leaves %}
+                    <tr>
+                        <td class="text-nowrap">{{ leave.username | default('N/A') }}</td>
+                        <td class="text-nowrap">{{ leave.applied_date.strftime('%Y-%m-%d %H:%M') if leave.applied_date else 'N/A' }}</td>
+                        <td>{{ leave.leave_type | title if leave.leave_type else 'N/A' }}</td>
+                        <td class="text-nowrap">{{ leave.start_date }} to {{ leave.end_date }}</td>
+                        <td>{{ leave.reason | truncate(50) }}</td>
+                        <td class="text-nowrap">
+                            {% set status_class = 'secondary' %}
+                            {% if leave.status == 'Pending' %}{% set status_class = 'warning text-dark' %}
+                            {% elif leave.status == 'Approved' %}{% set status_class = 'success' %}
+                            {% elif leave.status == 'Rejected' %}{% set status_class = 'danger' %}
+                            {% endif %}
+                            <span class="badge bg-{{ status_class }}">{{ leave.status }}</span>
+                        </td>
+                        <td class="text-nowrap"> {# Actions #}
+                            {% if leave.status == 'Pending' %}
+                            <div class="btn-group btn-group-sm" role="group">
+                                {# Approve Button/Form #}
+                                <form action="{{ url_for('admin_action_leave', leave_id=leave._id, action='approve') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to APPROVE this leave request?');">
+                                    <button type="submit" class="btn btn-success" title="Approve">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                 {# Reject Button/Form #}
+                                <form action="{{ url_for('admin_action_leave', leave_id=leave._id, action='reject') }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to REJECT this leave request?');">
+                                    <button type="submit" class="btn btn-danger" title="Reject">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                    {# Add a modal pop-up here later to ask for rejection reason #}
+                                </form>
+                            </div>
+                            {% elif leave.get('action_by') %} {# Show who actioned it if not pending #}
+                                <small class="text-muted fst-italic" style="font-size: 0.75rem;">
+                                    {{ leave.status }} by {{ leave.action_by }}<br>
+                                    on {{ leave.action_date.strftime('%Y-%m-%d') if leave.action_date else 'N/A' }}
+                                </small>
+                            {% else %}
+                                <span class="text-muted small">--</span> {# No action available/needed #}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary">No leave requests found matching the filter '{{ current_filter }}'.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

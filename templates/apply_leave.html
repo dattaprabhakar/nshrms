@@ -9,30 +9,41 @@
                 <h4 class="mb-0"><i class="bi bi-calendar-plus me-2"></i> Apply for Leave</h4>
             </div>
             <div class="card-body">
+                {# Display validation errors if form was re-rendered #}
+                 {% with messages = get_flashed_messages(with_categories=true, category_filter=["warning", "danger"]) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
                 <form method="POST" action="{{ url_for('apply_leave') }}">
                     <div class="row g-3"> {# Use grid for layout #}
                         <div class="col-md-6 mb-3">
                             <label for="start_date" class="form-label">Start Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            <input type="date" class="form-control" id="start_date" name="start_date"
+                                   value="{{ form_data.start_date if form_data else '' }}" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="end_date" class="form-label">End Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            <input type="date" class="form-control" id="end_date" name="end_date"
+                                   value="{{ form_data.end_date if form_data else '' }}" required>
                         </div>
                         <div class="col-12 mb-3">
                             <label for="leave_type" class="form-label">Leave Type <span class="text-danger">*</span></label>
                             <select class="form-select" id="leave_type" name="leave_type" required>
-                                <option value="" selected disabled>-- Select Type --</option>
-                                <option value="Paid Leave">Paid Leave</option>
-                                <option value="Sick Leave">Sick Leave</option>
-                                <option value="Casual Leave">Casual Leave</option>
-                                <option value="Unpaid Leave">Unpaid Leave</option>
+                                <option value="" {{ 'selected' if not form_data or not form_data.leave_type else '' }} disabled>-- Select Type --</option>
+                                <option value="Paid Leave" {{ 'selected' if form_data and form_data.leave_type == 'Paid Leave' else '' }}>Paid Leave</option>
+                                <option value="Sick Leave" {{ 'selected' if form_data and form_data.leave_type == 'Sick Leave' else '' }}>Sick Leave</option>
+                                <option value="Casual Leave" {{ 'selected' if form_data and form_data.leave_type == 'Casual Leave' else '' }}>Casual Leave</option>
+                                <option value="Unpaid Leave" {{ 'selected' if form_data and form_data.leave_type == 'Unpaid Leave' else '' }}>Unpaid Leave</option>
                                 {# Add more leave types as needed #}
                             </select>
                         </div>
                         <div class="col-12 mb-3">
                             <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="Briefly explain the reason for leave..." required></textarea>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="Briefly explain the reason for leave..." required>{{ form_data.reason if form_data else '' }}</textarea>
                         </div>
                     </div>
                     <div class="mt-4 d-flex justify-content-end"> {# Align buttons right #}

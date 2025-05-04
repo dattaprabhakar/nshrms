@@ -10,6 +10,18 @@
                      <h4 class="mb-0 py-1"><i class="bi bi-box-arrow-in-right me-2"></i> HRMS Portal Login</h4>
                  </div>
                 <div class="card-body p-4 p-md-5"> {# More padding on larger screens #}
+                    {# Display flash messages specifically for login page if needed, though base.html handles global ones #}
+                    {% with messages = get_flashed_messages(with_categories=true, category_filter=["danger", "warning"]) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                              {{ message }}
+                              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
                     <form method="POST" action="{{ url_for('login') }}">
                         <div class="mb-3">
                             <label for="username" class="form-label">Username</label>
@@ -30,9 +42,9 @@
                         </div>
                     </form>
                      <hr class="my-4">
-                     {# Only show setup link in debug mode potentially #}
+                     {# Only show setup link in debug mode #}
                      {% if app.debug %}
-                        <p class="text-muted text-center mb-0"><small>Hint: testuser / password123. Need user? <a href="{{ url_for('setup_user') }}">Setup Test User</a>.</small></p>
+                        <p class="text-muted text-center mb-0"><small>Hint: adminuser / password123. Need user? <a href="{{ url_for('setup_user') }}">Setup Admin User</a>.</small></p>
                      {% endif %}
                 </div>
             </div>
