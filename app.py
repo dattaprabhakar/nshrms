@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 # --- Database and ObjectId ---
 from pymongo import MongoClient, ReturnDocument
 from bson import ObjectId
-from bson.errors import InvalidId # <<< --- IMPORT ADDED HERE --- <<<
+from bson.errors import InvalidId # Correct import for ObjectId errors
 # --- Standard Python Libraries ---
 from datetime import datetime, date, timedelta
 from functools import wraps
@@ -26,7 +26,6 @@ if not app.secret_key:
 
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8) # Example session timeout
 # Set debug status based on FLASK_ENV (Flask >= 2.3 reads this)
-# For production, set FLASK_ENV=production
 app.config['DEBUG'] = os.environ.get('FLASK_ENV', 'production').lower() == 'development'
 
 # --- Payslip Storage Configuration ---
@@ -51,7 +50,7 @@ try:
     try:
         db_name_part = mongo_uri.split('/')[-1]
         db_name = db_name_part.split('?')[0]
-        if not db_name or db_name == 'admin': # Avoid using 'admin' db directly if URI is like mongodb://host/
+        if not db_name or db_name == 'admin': # Avoid using 'admin' db directly
              raise IndexError("Invalid or missing database name in URI")
     except IndexError:
         db_name = 'hrms_db' # Default database name
@@ -338,7 +337,6 @@ def download_payslip(payslip_id):
         print(f"Error during payslip download {payslip_id} for user {user['_id']}: {e}")
         flash("Error downloading payslip.", "danger"); return redirect(url_for('view_payslips'))
 
-
 @app.route('/my_team')
 @login_required
 def my_team():
@@ -429,7 +427,7 @@ def admin_add_user():
             else: flash("DB issue adding employee.", 'danger')
         except Exception as e: print(f"Err adding user '{username}': {e}"); flash(f"Error: {e}", 'danger')
         return render_template('admin/add_user.html', user=user, form_data=form_data), 500
-    return render_template('admin/add_user.html', user=user, form_data={})
+    return render_template('admin/add_user.html', user=user, form_data={}) # GET
 
 @app.route('/admin/leaves')
 @admin_required
